@@ -35,6 +35,10 @@ export const SUBJECTS: Subject[] = [
     keywords: [
       'c', 'programming', 'code', 'algorithms', 'loops', 'pointers', 'arrays',
       'recursion', 'data structures', 'computer science', 'compiler', 'syntax',
+      'dynamic memory allocation', 'memory allocation', 'malloc', 'calloc', 'free',
+      'sort', 'sorting', 'merge sort', 'bubble sort', 'selection sort', 'searching',
+      'binary search', 'linear search', 'stack', 'queue', 'linked list', 'structures',
+      'unions', 'functions', 'conditionals', 'operators', 'variables'
     ],
   },
   {
@@ -50,6 +54,9 @@ export const SUBJECTS: Subject[] = [
     keywords: [
       'chemistry', 'molecular', 'structure', 'kinetics', 'spectroscopy',
       'thermodynamics', 'bonding', 'orbitals', 'reaction', 'theory', 'organic',
+      'molecular orbital theory', 'mot', 'reaction kinetics', 'uv-vis', 'ir', 'nmr',
+      'organic chemistry', 'chemical bonding', 'hybridization', 'transition metals',
+      'electrochemical', 'conductance'
     ],
   },
   {
@@ -65,6 +72,9 @@ export const SUBJECTS: Subject[] = [
     keywords: [
       'lab', 'practical', 'experiment', 'titration', 'observation', 'viva',
       'manual', 'apparatus', 'readings', 'burette', 'chemistry',
+      'water hardness', 'hardness of water', 'edta', 'alkalinity', 'redox titration',
+      'conductometric titration', 'saponification', 'viscosity', 'surface tension',
+      'chloride content', 'viva questions', 'lab manual'
     ],
   },
   {
@@ -80,6 +90,10 @@ export const SUBJECTS: Subject[] = [
     keywords: [
       'maths', 'mathematics', 'differential', 'equations', 'linear algebra',
       'matrix', 'calculus', 'integration', 'vectors', 'eigenvalues', 'tutorials',
+      'eigenvectors', 'characteristic equation', 'rank of a matrix', 'determinant',
+      'vector calculus', 'line integral', 'surface integral', 'volume integral',
+      'ordinary differential equations', 'ode', 'partial differential equations', 'pde',
+      'laplace transform', 'fourier series'
     ],
   },
 ];

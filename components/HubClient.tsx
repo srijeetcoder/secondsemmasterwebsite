@@ -47,25 +47,22 @@ export function HubClient({ authError }: { authError: string | null }) {
     }
   }, [session]);
 
-  // Fetch recent notices from database
+  // Fetch recent notices from our scraper API
   useEffect(() => {
-    if (!supabase) return;
     const fetchNotices = async () => {
       try {
-        const { data, error } = await supabase
-          .from('makaut_notices')
-          .select('*')
-          .order('published_at', { ascending: false })
-          .limit(10);
-        if (data) {
-          setNotices(data);
+        const res = await fetch('/api/notices');
+        if (!res.ok) throw new Error('Failed to fetch notices');
+        const data = await res.json();
+        if (data && data.notices) {
+          setNotices(data.notices);
         }
       } catch (err) {
         console.error('[notices] Error fetching MAKAUT notices:', err);
       }
     };
     fetchNotices();
-  }, [supabase]);
+  }, []);
 
   // Global logStudyHistory registry
   useEffect(() => {

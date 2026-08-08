@@ -14,7 +14,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "C Pointers - Memory Addresses and Indirection",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/pointers",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=study&chapter=5&section=0",
     category: "lecture",
     snippet: "Learn pointer declarations, dereferencing, pointer arithmetic, pointer-to-pointer, and function pointers in C.",
     keywords: ["pointers", "pointer", "address-of", "dereference", "memory address", "indirection", "void pointer", "null pointer", "wild pointer"]
@@ -22,7 +22,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Dynamic Memory Allocation - malloc, calloc, realloc, and free",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/dynamic-memory",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=study&chapter=5&section=1",
     category: "lecture",
     snippet: "Master dynamic memory management in C using malloc(), calloc(), realloc(), and memory deallocation with free().",
     keywords: ["dynamic memory allocation", "malloc", "calloc", "realloc", "free", "memory leak", "dangling pointer", "heap memory", "allocation"]
@@ -30,7 +30,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Recursion in C - Base Case and Call Stack",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/recursion",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=study&chapter=3&section=2",
     category: "lecture",
     snippet: "Study recursive function structures, direct vs indirect recursion, base cases, and call stack trace examples.",
     keywords: ["recursion", "recursive", "factorial", "fibonacci", "tower of hanoi", "base case", "call stack", "stack overflow"]
@@ -38,7 +38,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Bubble Sort Algorithm and C Implementation",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/bubble-sort",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=sort_algos",
     category: "lecture",
     snippet: "Learn how Bubble Sort works, step-by-step swaps, optimization techniques, and C programming implementation.",
     keywords: ["bubble sort", "sorting", "sort", "ascending", "descending", "adjacent swap", "time complexity"]
@@ -46,7 +46,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Merge Sort Algorithm - Divide and Conquer",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/merge-sort",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=sort_algos",
     category: "lecture",
     snippet: "Detailed breakdown of the divide-and-conquer Merge Sort algorithm, recurrences, and stable sorting in C.",
     keywords: ["merge sort", "sorting", "sort", "divide and conquer", "recursive sort", "stable sort", "time complexity"]
@@ -54,7 +54,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Selection Sort Algorithm and Complexity",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/selection-sort",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=sort_algos",
     category: "lecture",
     snippet: "Understand Selection Sort, finding the minimum element in unsorted subarray, swaps, and time complexity.",
     keywords: ["selection sort", "sorting", "sort", "minimum element", "swaps"]
@@ -62,7 +62,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Binary Search - Logarithmic Search Algorithm",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/binary-search",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=sort_algos",
     category: "lecture",
     snippet: "Learn how Binary Search divides sorted arrays to locate target values in O(log n) time complexity.",
     keywords: ["binary search", "searching", "search", "sorted array", "midpoint", "logarithmic"]
@@ -70,7 +70,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Linear Search - Sequential Search in Arrays",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/linear-search",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=sort_algos",
     category: "lecture",
     snippet: "Simple sequential search algorithm through arrays, worst-case and best-case time complexity analyses.",
     keywords: ["linear search", "searching", "search", "sequential", "array"]
@@ -78,7 +78,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Structures and Unions in C",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/structures",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=study&chapter=6&section=0",
     category: "lecture",
     snippet: "Compare user-defined data structures and unions in C, struct members, memory padding, and nested structures.",
     keywords: ["structures", "unions", "struct", "union", "typedef", "member access", "memory alignment"]
@@ -86,7 +86,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Singly Linked List - Dynamic Data Structure",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/linked-list",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=ds",
     category: "lecture",
     snippet: "Study singly linked list creation, node insertions, deletions, traversals, and dynamic head pointer updates.",
     keywords: ["linked list", "node", "head pointer", "dynamic list", "next pointer", "singly linked list"]
@@ -94,7 +94,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   {
     title: "Stacks and Queues - Linear Data Structures",
     subjectCode: "ESCS 201",
-    url: "https://cnotesbycsrijeet.vercel.app/notes/stacks-queues",
+    url: "https://cnotesbycsrijeet.vercel.app/?page=visualizers&tab=ds",
     category: "lecture",
     snippet: "Implement LIFO stack and FIFO queue arrays, push/pop operations, enqueue/dequeue, and overflow checks.",
     keywords: ["stack", "queue", "push", "pop", "enqueue", "dequeue", "lifo", "fifo", "underflow", "overflow"]

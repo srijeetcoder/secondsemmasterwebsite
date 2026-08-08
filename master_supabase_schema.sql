@@ -149,8 +149,16 @@ CREATE POLICY "Allow users to manage their own revision progress"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
-  VALUES (new.id, new.email, COALESCE(new.raw_user_meta_data->>'full_name', ''));
+  INSERT INTO public.profiles (id, email, full_name, dob, college, year, semester)
+  VALUES (
+    new.id, 
+    new.email, 
+    COALESCE(new.raw_user_meta_data->>'full_name', ''),
+    (new.raw_user_meta_data->>'dob')::DATE,
+    COALESCE(new.raw_user_meta_data->>'college', ''),
+    COALESCE(new.raw_user_meta_data->>'year', ''),
+    COALESCE(new.raw_user_meta_data->>'semester', '')
+  );
   
   INSERT INTO public.user_settings (user_id, theme)
   VALUES (new.id, 'dark');
@@ -170,3 +178,43 @@ BEGIN
   DELETE FROM auth.users WHERE id = auth.uid();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ===========================================================================
+-- NEW PROFILE FIELDS & ADDITIONAL TABLES
+-- ===========================================================================
+
+-- 1. Add extra columns to profiles table if they do not exist
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS dob DATE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS college TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS year TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS semester TEXT;
+
+-- 2. Create study history tracking table
+CREATE TABLE IF NOT EXISTS public.study_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  subject_id TEXT NOT NULL,
+  subject_title TEXT NOT NULL,
+  topic_title TEXT DEFAULT NULL,
+  url TEXT NOT NULL,
+  timestamp TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.study_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow users to manage their own study history"
+  ON public.study_history FOR ALL TO authenticated USING (auth.uid() = user_id);
+
+-- 3. Create MAKAUT notices table
+CREATE TABLE IF NOT EXISTS public.makaut_notices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  published_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  link TEXT DEFAULT NULL
+);
+
+ALTER TABLE public.makaut_notices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow read access to anyone"
+  ON public.makaut_notices FOR SELECT TO anon, authenticated USING (true);
+

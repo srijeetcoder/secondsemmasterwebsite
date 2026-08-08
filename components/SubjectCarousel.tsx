@@ -452,7 +452,13 @@ function CarouselCard({
         draggable={false}
         data-subject={subject.id}
         onClick={(e) => {
-          if (movedRef.current) e.preventDefault();
+          if (movedRef.current) {
+            e.preventDefault();
+            return;
+          }
+          if (typeof window !== 'undefined' && (window as any).logStudyHistory) {
+            (window as any).logStudyHistory(subject.id, subject.title, subject.url);
+          }
         }}
       >
         {body}

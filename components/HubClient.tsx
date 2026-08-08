@@ -1,12 +1,12 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, GraduationCap, Search, SearchX, X } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Megaphone, Search, SearchX, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AuthModal } from '@/components/AuthModal';
 import { BackgroundMesh } from '@/components/BackgroundMesh';
-import { IntegrationGuide } from '@/components/IntegrationGuide';
+import { ProfileModal } from '@/components/ProfileModal';
 import { SessionCard } from '@/components/SessionCard';
 import { SubjectCarousel } from '@/components/SubjectCarousel';
 import { UserMenu } from '@/components/UserMenu';
@@ -21,8 +21,10 @@ export function HubClient({ authError }: { authError: string | null }) {
 
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [lockedSubject, setLockedSubject] = useState<Subject | null>(null);
   const [errorDismissed, setErrorDismissed] = useState(false);
+  const [latestNotice, setLatestNotice] = useState<{ title: string; published_at: string; link: string | null } | null>(null);
 
   const results = useMemo(() => filterSubjects(SUBJECTS, query), [query]);
 
@@ -44,6 +46,58 @@ export function HubClient({ authError }: { authError: string | null }) {
     }
   }, [session]);
 
+  // Fetch latest notice from database
+  useEffect(() => {
+    if (!supabase) return;
+    const fetchNotices = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('makaut_notices')
+          .select('*')
+          .order('published_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          setLatestNotice(data);
+        }
+      } catch (err) {
+        console.error('[notices] Error fetching MAKAUT notices:', err);
+      }
+    };
+    fetchNotices();
+  }, [supabase]);
+
+  // Global logStudyHistory registry
+  useEffect(() => {
+    if (!supabase || !user) return;
+    (window as any).logStudyHistory = async (subjectId: string, subjectTitle: string, url: string, topicTitle?: string) => {
+      try {
+        const { error } = await supabase
+          .from('study_history')
+          .insert({
+            user_id: user.id,
+            subject_id: subjectId,
+            subject_title: subjectTitle,
+            topic_title: topicTitle || null,
+            url: url,
+            timestamp: new Date().toISOString()
+          });
+        if (error) console.error('[history] Error logging study history:', error);
+      } catch (err) {
+        console.error('[history] Failed to log study history:', err);
+      }
+    };
+    return () => {
+      delete (window as any).logStudyHistory;
+    };
+  }, [supabase, user]);
+
+  const activeNotice = latestNotice || {
+    title: "New Notice From Makaut - Semester 2 Exam Form Fill-up & Routine Published",
+    published_at: new Date().toISOString(),
+    link: "https://makautexams.net"
+  };
+
   function openAuth(subject?: Subject) {
     setLockedSubject(subject ?? null);
     setModalOpen(true);
@@ -64,6 +118,33 @@ export function HubClient({ authError }: { authError: string | null }) {
       <BackgroundMesh />
 
       <div className="mx-auto w-full max-w-6xl px-5 pb-20 pt-6 sm:px-8 sm:pt-8">
+        {/* MAKAUT Notices Banner */}
+        {activeNotice && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-amber-500/25 bg-amber-500/[0.04] px-4 py-2 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-amber-200/90 shadow-sm relative">
+            <div className="absolute inset-y-0 left-0 w-1 bg-amber-500" />
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-amber-400 shrink-0" />
+              <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px]">MAKAUT NOTICE:</span>
+              <span className="font-medium truncate">{activeNotice.title}</span>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-[10px] text-slate-500 font-mono">
+                {new Date(activeNotice.published_at).toLocaleString()}
+              </span>
+              {activeNotice.link && (
+                <a
+                  href={activeNotice.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-amber-400 underline hover:text-amber-300"
+                >
+                  View Details
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ---------------------------------------------------------------
          * Top bar: brand · search · auth control
          * ------------------------------------------------------------- */}
@@ -104,6 +185,7 @@ export function HubClient({ authError }: { authError: string | null }) {
               loading={loading}
               onSignIn={() => openAuth()}
               onSignOut={signOut}
+              onOpenProfile={() => setProfileOpen(true)}
             />
           </div>
         </header>
@@ -229,12 +311,7 @@ export function HubClient({ authError }: { authError: string | null }) {
           />
         </div>
 
-        {/* ---------------------------------------------------------------
-         * Developer docs
-         * ------------------------------------------------------------- */}
-        <div className="mt-6">
-          <IntegrationGuide />
-        </div>
+
 
         <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
           <p className="text-xs text-[#626766]">
@@ -251,6 +328,14 @@ export function HubClient({ authError }: { authError: string | null }) {
         onClose={closeAuth}
         supabase={supabase}
         reason={lockedSubject ? `${lockedSubject.code} — ${lockedSubject.title}` : null}
+      />
+
+      <ProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={user}
+        supabase={supabase}
+        onSignOut={signOut}
       />
     </>
   );

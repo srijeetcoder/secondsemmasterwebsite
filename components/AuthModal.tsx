@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-type Mode = 'signin' | 'signup' | 'magic';
+type Mode = 'signin' | 'signup';
 
 type Props = {
   open: boolean;
@@ -37,12 +37,38 @@ const MODE_COPY: Record<Mode, { title: string; subtitle: string; cta: string }> 
     subtitle: 'One account covers all four semester subjects.',
     cta: 'Create account',
   },
-  magic: {
-    title: 'Magic link sign-in',
-    subtitle: 'No password needed — we email you a one-tap link.',
-    cta: 'Send magic link',
-  },
 };
+
+const COLLEGES = [
+  "Maulana Abul Kalam Azad University of Technology (MAKAUT)",
+  "Heritage Institute of Technology (HIT)",
+  "Institute of Engineering and Management (IEM)",
+  "Techno Main Salt Lake (TMSL)",
+  "Netaji Subhash Engineering College (NSEC)",
+  "Jadavpur University (JU)",
+  "Calcutta University (CU)",
+  "Haldia Institute of Technology (HIT Haldia)",
+  "Kalyani Government Engineering College (KGEC)",
+  "Jalpaiguri Government Engineering College (JGEC)",
+  "Massachusetts Institute of Technology (MIT), USA",
+  "Stanford University, USA",
+  "Harvard University, USA",
+  "California Institute of Technology (Caltech), USA",
+  "University of Oxford, UK",
+  "University of Cambridge, UK",
+  "Imperial College London, UK",
+  "ETH Zurich, Switzerland",
+  "National University of Singapore (NUS)",
+  "Nanyang Technological University (NTU), Singapore",
+  "University of Toronto, Canada",
+  "Tsinghua University, China",
+  "Peking University, China",
+  "University of Tokyo, Japan",
+  "Indian Institute of Technology Kharagpur (IIT KGP)",
+  "Indian Institute of Technology Bombay (IIT B)",
+  "Indian Institute of Technology Delhi (IIT D)",
+  "Other College / University"
+];
 
 /**
  * Shell: owns the backdrop, the Escape handler and the exit animation.
@@ -88,6 +114,11 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [dob, setDob] = useState('');
+  const [college, setCollege] = useState('');
+  const [year, setYear] = useState('');
+  const [semester, setSemester] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState<null | 'email' | 'google'>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,23 +162,35 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
     e.preventDefault();
     if (!supabase) return setError('Supabase is not configured yet — see the setup guide below.');
 
+    // Email validation: must end with @gmail.com
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      setError('Only Gmail addresses (@gmail.com) are allowed.');
+      return;
+    }
+
     setBusy('email');
     setError(null);
     setNotice(null);
 
     try {
-      if (mode === 'magic') {
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: redirectTo },
-        });
-        if (otpError) throw otpError;
-        setNotice(`Magic link sent to ${email}. Check your inbox.`);
-      } else if (mode === 'signup') {
+      if (mode === 'signup') {
+        if (!fullName || !dob || !college || !year || !semester) {
+          throw new Error('Please fill in all registration fields.');
+        }
+
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: redirectTo },
+          options: {
+            emailRedirectTo: redirectTo,
+            data: {
+              full_name: fullName,
+              dob: dob,
+              college: college,
+              year: year,
+              semester: semester,
+            },
+          },
         });
         if (signUpError) throw signUpError;
 
@@ -172,7 +215,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   }
 
   const copy = MODE_COPY[mode];
-  const needsPassword = mode !== 'magic';
+  const needsPassword = true;
 
   return (
     <motion.div
@@ -305,6 +348,104 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                   </div>
                 </motion.div>
 
+                <AnimatePresence>
+                  {mode === 'signup' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22 }}
+                      className="space-y-3 overflow-hidden pb-1"
+                    >
+                      <div>
+                        <label htmlFor="auth-fullname" className="mb-1.5 block text-xs font-medium text-[#929694]">
+                          Full name
+                        </label>
+                        <input
+                          id="auth-fullname"
+                          type="text"
+                          required={mode === 'signup'}
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="Your Name"
+                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="auth-dob" className="mb-1.5 block text-xs font-medium text-[#929694]">
+                          Date of Birth
+                        </label>
+                        <input
+                          id="auth-dob"
+                          type="date"
+                          required={mode === 'signup'}
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none [color-scheme:dark]"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="auth-college" className="mb-1.5 block text-xs font-medium text-[#929694]">
+                          College / University
+                        </label>
+                        <select
+                          id="auth-college"
+                          required={mode === 'signup'}
+                          value={college}
+                          onChange={(e) => setCollege(e.target.value)}
+                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#0D0F10] border border-white/10 text-slate-200"
+                        >
+                          <option value="">Select your college</option>
+                          {COLLEGES.map((clg) => (
+                            <option key={clg} value={clg}>{clg}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="auth-year" className="mb-1.5 block text-xs font-medium text-[#929694]">
+                            Year
+                          </label>
+                          <select
+                            id="auth-year"
+                            required={mode === 'signup'}
+                            value={year}
+                            onChange={(e) => setYear(e.target.value)}
+                            className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#0D0F10] border border-white/10 text-slate-200"
+                          >
+                            <option value="">Select Year</option>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="auth-semester" className="mb-1.5 block text-xs font-medium text-[#929694]">
+                            Semester
+                          </label>
+                          <select
+                            id="auth-semester"
+                            required={mode === 'signup'}
+                            value={semester}
+                            onChange={(e) => setSemester(e.target.value)}
+                            className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#0D0F10] border border-white/10 text-slate-200"
+                          >
+                            <option value="">Select Sem</option>
+                            {Array.from({ length: 8 }, (_, i) => (
+                              <option key={i + 1} value={`Semester ${i + 1}`}>{`Semester ${i + 1}`}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {error && (
                   <div className="flex items-start gap-2 rounded-xl border border-rose-400/25 bg-rose-500/[0.08] px-3.5 py-2.5 text-sm text-rose-200">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -332,23 +473,15 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               {/* Mode switching */}
               <div className="mt-5 space-y-2 text-center text-sm">
                 {mode === 'signin' && (
-                  <>
-                    <p className="text-[#929694]">
-                      No account yet?{' '}
-                      <button
-                        onClick={() => switchMode('signup')}
-                        className="font-medium text-[#E8E8E5] underline transition hover:text-[#929694]"
-                      >
-                        Create one
-                      </button>
-                    </p>
+                  <p className="text-[#929694]">
+                    No account yet?{' '}
                     <button
-                      onClick={() => switchMode('magic')}
-                      className="text-xs text-[#626766] transition hover:text-[#929694]"
+                      onClick={() => switchMode('signup')}
+                      className="font-medium text-[#E8E8E5] underline transition hover:text-[#929694]"
                     >
-                      Prefer a magic link instead?
+                      Create one
                     </button>
-                  </>
+                  </p>
                 )}
 
                 {mode === 'signup' && (
@@ -359,18 +492,6 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                       className="font-medium text-[#E8E8E5] underline transition hover:text-[#929694]"
                     >
                       Sign in
-                    </button>
-                  </p>
-                )}
-
-                {mode === 'magic' && (
-                  <p className="text-[#929694]">
-                    Rather use a password?{' '}
-                    <button
-                      onClick={() => switchMode('signin')}
-                      className="font-medium text-[#E8E8E5] underline transition hover:text-[#929694]"
-                    >
-                      Go back
                     </button>
                   </p>
                 )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { ChevronDown, LogIn, LogOut, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { User } from '@supabase/supabase-js';
@@ -13,10 +13,11 @@ type Props = {
   loading: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
+  onOpenProfile: () => void;
 };
 
 /** Compact auth control for the top bar: avatar dropdown, or a Sign In button. */
-export function UserMenu({ user, loading, onSignIn, onSignOut }: Props) {
+export function UserMenu({ user, loading, onSignIn, onSignOut, onOpenProfile }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -89,6 +90,18 @@ export function UserMenu({ user, loading, onSignIn, onSignOut }: Props) {
               <ShieldCheck className="h-3.5 w-3.5 text-[#6D9B82]" />
               <span className="text-xs font-medium text-[#6D9B82]">Session Active</span>
             </div>
+
+            <button
+              onClick={() => {
+                setOpen(false);
+                onOpenProfile();
+              }}
+              role="menuitem"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#929694] transition hover:bg-white/5 hover:text-slate-200"
+            >
+              <UserIcon className="h-4 w-4" />
+              View Profile & History
+            </button>
 
             <button
               onClick={() => {

@@ -33,13 +33,15 @@ export function HubClient({ authError }: { authError: string | null }) {
   const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[]>([]);
   const [aiOverview, setAiOverview] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeSearchLink, setActiveSearchLink] = useState<string | null>(null);
+  const [activeSearchTitle, setActiveSearchTitle] = useState<string>('');
 
   // Compute autocomplete search suggestions
   const recommendations = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) return [];
 
-    const list: { type: 'subject' | 'topic' | 'notice' | 'web'; label: string; sublabel?: string; value: string }[] = [];
+    const list: { type: 'subject' | 'topic' | 'notice' | 'web'; label: string; sublabel?: string; value: string; link?: string }[] = [];
 
     // 1. Match subjects
     for (const sub of SUBJECTS) {
@@ -87,13 +89,35 @@ export function HubClient({ authError }: { authError: string | null }) {
       value: query
     });
 
-    return list.slice(0, 6); // Limit to top 6 items
-  }, [query, notices, searchGoogle]);
+    // 5. Append organic results directly in recommendations if Google mode is active
+    if (searchGoogle && searchResults.length > 0) {
+      for (const res of searchResults) {
+        let domain = 'web';
+        try {
+          domain = new URL(res.link).hostname;
+        } catch {}
+        list.push({
+          type: 'web',
+          label: res.title,
+          sublabel: domain,
+          value: res.title,
+          link: res.link
+        });
+      }
+    }
 
-  const handleSelectRecommendation = (value: string, type: string) => {
-    setQuery(value);
+    return list.slice(0, 8); // Limit to top 8 items
+  }, [query, notices, searchGoogle, searchResults]);
+
+  const handleSelectRecommendation = (item: any) => {
+    if (item.link) {
+      setActiveSearchLink(item.link);
+      setActiveSearchTitle(item.label);
+    } else {
+      setQuery(item.value);
+    }
     setDropdownOpen(false);
-    if (type === 'web' && !searchGoogle) {
+    if (item.type === 'web' && !searchGoogle) {
       setSearchGoogle(true);
     }
   };
@@ -101,7 +125,7 @@ export function HubClient({ authError }: { authError: string | null }) {
   // Fetch search results on query change with debounce
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length <= 1) {
+    if (trimmed.length === 0) {
       setSearchResults([]);
       setAiOverview('');
       return;
@@ -261,7 +285,7 @@ export function HubClient({ authError }: { authError: string | null }) {
                     <button
                       key={idx}
                       type="button"
-                      onMouseDown={() => handleSelectRecommendation(item.value, item.type)}
+                      onMouseDown={() => handleSelectRecommendation(item)}
                       className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -436,15 +460,17 @@ export function HubClient({ authError }: { authError: string | null }) {
                 {searchResults.length > 0 ? (
                   searchResults.map((result, idx) => (
                     <div key={idx} className="group/search-item flex flex-col gap-1 p-3 rounded-xl border border-white/[0.02] bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/5 transition duration-200">
-                      <a 
-                        href={result.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-sm font-semibold text-slate-200 hover:text-[#4AA6A8] hover:underline transition truncate flex items-center gap-1.5"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveSearchLink(result.link);
+                          setActiveSearchTitle(result.title);
+                        }}
+                        className="text-left text-sm font-semibold text-slate-200 hover:text-[#4AA6A8] hover:underline transition truncate flex items-center gap-1.5 w-full"
                       >
                         {result.title}
                         <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover/search-item:opacity-100 transition-opacity duration-200" />
-                      </a>
+                      </button>
                       <span className="text-[10px] text-slate-500 font-mono truncate max-w-full">
                         {result.link}
                       </span>
@@ -545,6 +571,76 @@ export function HubClient({ authError }: { authError: string | null }) {
         supabase={supabase}
         onSignOut={signOut}
       />
+
+      {/* Web Search Result Iframe Overlay (Glass Lightbox) */}
+      <AnimatePresence>
+        {activeSearchLink && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-md p-4 sm:p-6"
+            onClick={() => setActiveSearchLink(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="relative flex h-[75vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0D0F10]/40 backdrop-blur-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header bar */}
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5 bg-black/25">
+                <div className="flex flex-col min-w-0 pr-4">
+                  <h3 className="truncate text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Web Preview
+                  </h3>
+                  <span className="truncate text-sm font-semibold text-[#E8E8E5] mt-0.5">
+                    {activeSearchTitle}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={activeSearchLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-[#4AA6A8] transition hover:bg-white/10"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open Tab
+                  </a>
+                  <button
+                    onClick={() => setActiveSearchLink(null)}
+                    aria-label="Close preview"
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-[#E8E8E5] transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Iframe body */}
+              <div className="flex-1 bg-white relative">
+                {/* Fallback note overlay in case iframe is blocked */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-900/90 text-slate-300 pointer-events-none z-0">
+                  <ExternalLink className="h-8 w-8 text-[#4AA6A8] mb-3" />
+                  <p className="text-sm font-medium text-white">Loading Web Page Preview</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-md">
+                    If the page does not display, the destination website might have blocked embedded previews. Use the &quot;Open Tab&quot; button at the top to access it directly.
+                  </p>
+                </div>
+                <iframe
+                  src={activeSearchLink}
+                  className="relative z-10 w-full h-full border-0 bg-white"
+                  title="Web Page Preview"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

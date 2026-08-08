@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, GraduationCap, Search, SearchX, X, Sparkles, ExternalLink } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Search, SearchX, X, Sparkles, ExternalLink, Tag, FileText } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AuthModal } from '@/components/AuthModal';
@@ -32,6 +32,71 @@ export function HubClient({ authError }: { authError: string | null }) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[]>([]);
   const [aiOverview, setAiOverview] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Compute autocomplete search suggestions
+  const recommendations = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return [];
+
+    const list: { type: 'subject' | 'topic' | 'notice' | 'web'; label: string; sublabel?: string; value: string }[] = [];
+
+    // 1. Match subjects
+    for (const sub of SUBJECTS) {
+      if (sub.title.toLowerCase().includes(q) || sub.code.toLowerCase().includes(q)) {
+        list.push({
+          type: 'subject',
+          label: `${sub.code} — ${sub.title}`,
+          sublabel: sub.badge,
+          value: sub.title
+        });
+      }
+    }
+
+    // 2. Match topics (keywords from subjects)
+    for (const sub of SUBJECTS) {
+      for (const kw of sub.keywords) {
+        if (kw.toLowerCase().includes(q) && !list.some(item => item.value.toLowerCase() === kw.toLowerCase())) {
+          list.push({
+            type: 'topic',
+            label: kw,
+            sublabel: `in ${sub.code}`,
+            value: kw
+          });
+        }
+      }
+    }
+
+    // 3. Match notices
+    for (const notice of notices) {
+      if (notice.title.toLowerCase().includes(q)) {
+        list.push({
+          type: 'notice',
+          label: notice.title,
+          sublabel: 'Notice Announcement',
+          value: notice.title
+        });
+      }
+    }
+
+    // 4. Default web search suggestion
+    list.push({
+      type: 'web',
+      label: `Search web for "${query}"`,
+      sublabel: searchGoogle ? 'Google & Gemini' : 'Notes domains only',
+      value: query
+    });
+
+    return list.slice(0, 6); // Limit to top 6 items
+  }, [query, notices, searchGoogle]);
+
+  const handleSelectRecommendation = (value: string, type: string) => {
+    setQuery(value);
+    setDropdownOpen(false);
+    if (type === 'web' && !searchGoogle) {
+      setSearchGoogle(true);
+    }
+  };
 
   // Fetch search results on query change with debounce
   useEffect(() => {
@@ -160,25 +225,63 @@ export function HubClient({ authError }: { authError: string | null }) {
             </span>
           </div>
 
-          <div className="flex-1 sm:mx-2 flex flex-col gap-2">
+          <div className="flex-1 sm:mx-2 flex flex-col gap-2 relative">
             <div className="relative w-full">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
                 type="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setDropdownOpen(true);
+                }}
+                onFocus={() => setDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
                 placeholder="Search by subject, course code, or topic…"
                 aria-label="Search subjects"
                 className="search-input w-full rounded-xl py-2.5 pl-10 pr-9 text-sm focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
               {query && (
                 <button
-                  onClick={() => setQuery('')}
+                  onClick={() => {
+                    setQuery('');
+                    setDropdownOpen(false);
+                  }}
                   aria-label="Clear search"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694]"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
+              )}
+
+              {/* Autocomplete Recommendations Dropdown */}
+              {dropdownOpen && recommendations.length > 0 && (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-xl border border-white/10 bg-[#0D0F10]/95 backdrop-blur-xl p-1.5 shadow-2xl max-h-[300px] overflow-y-auto flex flex-col gap-0.5">
+                  {recommendations.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onMouseDown={() => handleSelectRecommendation(item.value, item.type)}
+                      className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {item.type === 'subject' && <GraduationCap className="h-4 w-4 text-[#4AA6A8] shrink-0" />}
+                        {item.type === 'topic' && <Tag className="h-3.5 w-3.5 text-[#827A9B] shrink-0" />}
+                        {item.type === 'notice' && <FileText className="h-3.5 w-3.5 text-[#A58A55] shrink-0" />}
+                        {item.type === 'web' && <Sparkles className="h-3.5 w-3.5 text-[#4AA6A8] shrink-0 group-hover:animate-pulse" />}
+                        
+                        <span className="text-xs font-medium text-slate-200 truncate group-hover:text-[#4AA6A8] transition">
+                          {item.label}
+                        </span>
+                      </div>
+                      {item.sublabel && (
+                        <span className="text-[10px] text-slate-500 font-medium shrink-0 ml-2">
+                          {item.sublabel}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
             {/* Google & AI Search Toggle Switch */}

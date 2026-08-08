@@ -68,7 +68,7 @@ function slotStyle(offset: number, reduced: boolean): React.CSSProperties {
   };
 }
 
-export default function NoticeDropdown({ notices }: { notices: Notice[] }) {
+export function NoticeDropdown({ notices }: { notices: Notice[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentCollapsedIndex, setCurrentCollapsedIndex] = useState(0);
   const [rawIndex, setRawIndex] = useState(0);

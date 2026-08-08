@@ -1,24 +1,79 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Megaphone } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useReducedMotion, motion, AnimatePresence } from 'framer-motion';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronUp, 
+  ChevronDown, 
+  ExternalLink, 
+  X,
+  FileText
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-type Notice = {
-  id: string;
+interface Notice {
+  id?: string;
   title: string;
-  published_at: string;
   link: string;
-};
+  published_at: string;
+}
 
-type Props = {
-  notices: Notice[];
-};
+const SWIPE_THRESHOLD = 50;
+const WHEEL_THRESHOLD = 50;
+const WHEEL_COOLDOWN_MS = 750;
+const AUTO_ROTATE_MS = 6000;
 
-export function NoticeDropdown({ notices }: Props) {
+function slotStyle(offset: number, reduced: boolean): React.CSSProperties {
+  if (Math.abs(offset) > 1) {
+    return {
+      transform: reduced
+        ? 'translate(-50%, -50%) scale(0.9)'
+        : 'translate(-50%, -50%) translate3d(0, 0, -240px) scale(0.75)',
+      opacity: 0,
+      filter: 'brightness(0.4) blur(3px)',
+      zIndex: 0,
+      pointerEvents: 'none',
+    };
+  }
+
+  if (offset === 0) {
+    return {
+      transform: 'translate(-50%, -50%) translate3d(0, 0, 0) rotateY(0deg) scale(1)',
+      opacity: 1,
+      filter: 'brightness(1) blur(0px)',
+      zIndex: 30,
+      pointerEvents: 'auto',
+    };
+  }
+
+  const dir = offset < 0 ? -1 : 1;
+
+  if (reduced) {
+    return {
+      transform: `translate(-50%, -50%) translate3d(${dir * 54}%, 0, 0) scale(0.9)`,
+      opacity: 0.5,
+      filter: 'brightness(0.7) blur(1.2px)',
+      zIndex: 10,
+      pointerEvents: 'auto',
+    };
+  }
+
+  return {
+    transform: `translate(-50%, -50%) translate3d(calc(${dir} * var(--side-x)), 0, var(--side-z)) rotateY(calc(${-dir} * var(--side-rot))) scale(var(--side-scale))`,
+    opacity: 0.6,
+    zIndex: 10,
+    filter: 'brightness(0.75) blur(1px)',
+    pointerEvents: 'auto',
+  };
+}
+
+export default function NoticeDropdown({ notices }: { notices: Notice[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentCollapsedIndex, setCurrentCollapsedIndex] = useState(0);
-  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+  const [rawIndex, setRawIndex] = useState(0);
+  const [expandedNotice, setExpandedNotice] = useState<Notice | null>(null);
+  const [iframeLoading, setIframeLoading] = useState(true);
 
   // Fallback default notices if none exist in the database yet
   const displayNotices = notices.length > 0 ? notices : [
@@ -42,81 +97,178 @@ export function NoticeDropdown({ notices }: Props) {
     }
   ];
 
+  const count = displayNotices.length;
+  const active = count > 0 ? ((rawIndex % count) + count) % count : 0;
+  const activeCollapsedNotice = displayNotices[currentCollapsedIndex] || displayNotices[0];
+  const activeCarouselNotice = displayNotices[active];
+
   // Rotate through notices in collapsed view
   useEffect(() => {
-    if (isOpen || displayNotices.length <= 1) return;
+    if (isOpen || count < 2) return;
     const interval = setInterval(() => {
-      setCurrentCollapsedIndex((prev) => (prev + 1) % displayNotices.length);
+      setCurrentCollapsedIndex((prev) => (prev + 1) % count);
     }, 4500);
     return () => clearInterval(interval);
-  }, [isOpen, displayNotices.length]);
+  }, [isOpen, count]);
 
-  const activeCollapsedNotice = displayNotices[currentCollapsedIndex];
-
-  const handleNext = () => {
-    setCurrentCarouselIndex((prev) => (prev + 1) % displayNotices.length);
-  };
-
-  const handlePrev = () => {
-    setCurrentCarouselIndex((prev) => (prev - 1 + displayNotices.length) % displayNotices.length);
-  };
-
-  const activeCarouselNotice = displayNotices[currentCarouselIndex];
-
-  const [iframeLoading, setIframeLoading] = useState(true);
-
-  // Reset loading spinner whenever active notice link changes
+  // Synchronize index when expanding
   useEffect(() => {
-    setIframeLoading(true);
-  }, [activeCarouselNotice.link]);
+    if (isOpen) {
+      setRawIndex(currentCollapsedIndex);
+    } else {
+      setCurrentCollapsedIndex(active);
+    }
+  }, [isOpen]);
+
+  // Coverflow Carousel Math & Swiping States
+  const reduced = useReducedMotion() ?? false;
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [dragX, setDragX] = useState(0);
+
+  const pointerStart = useRef<number | null>(null);
+  const movedRef = useRef(false);
+  const wheelAcc = useRef(0);
+  const wheelLockUntil = useRef(0);
+
+  const goTo = useCallback(
+    (i: number) => setRawIndex(((i % count) + count) % count),
+    [count],
+  );
+  const prev = useCallback(() => goTo(active - 1), [goTo, active]);
+  const next = useCallback(() => goTo(active + 1), [goTo, active]);
+
+  // Auto rotation inside the carousel when expanded
+  useEffect(() => {
+    if (reduced || count < 2 || !isOpen || hovered || focused || dragging || expandedNotice) return;
+    const t = setTimeout(() => setRawIndex((v) => ((v + 1) % count + count) % count), AUTO_ROTATE_MS);
+    return () => {
+      clearTimeout(t);
+    };
+  }, [active, reduced, count, hovered, focused, dragging, isOpen, expandedNotice]);
+
+  // Handle pointer swiping
+  function onPointerDown(e: React.PointerEvent) {
+    if (count < 2) return;
+    pointerStart.current = e.clientX;
+    movedRef.current = false;
+    setDragging(true);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (pointerStart.current === null) return;
+    const dx = e.clientX - pointerStart.current;
+    if (Math.abs(dx) > 10) movedRef.current = true;
+    setDragX(dx);
+  }
+
+  // Release swipe
+  function endDrag() {
+    if (pointerStart.current === null) return;
+    const dx = dragX;
+    pointerStart.current = null;
+    setDragging(false);
+    setDragX(0);
+    if (dx <= -SWIPE_THRESHOLD) next();
+    else if (dx >= SWIPE_THRESHOLD) prev();
+  }
+
+  // Handle wheel scrolling (horizontal gestures)
+  function onWheel(e: React.WheelEvent) {
+    if (count < 2) return;
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    const now = Date.now();
+    if (now < wheelLockUntil.current) return;
+
+    if (wheelAcc.current !== 0 && Math.sign(e.deltaX) !== Math.sign(wheelAcc.current)) {
+      wheelAcc.current = 0;
+    }
+
+    wheelAcc.current += e.deltaX;
+    if (Math.abs(wheelAcc.current) >= WHEEL_THRESHOLD) {
+      wheelLockUntil.current = now + WHEEL_COOLDOWN_MS;
+      if (wheelAcc.current > 0) next();
+      else prev();
+      wheelAcc.current = 0;
+    }
+  }
+
+  // Handle arrow key navigation
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (count < 2) return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      prev();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      next();
+    }
+  }
+
+  // 3D Card Hover-Tilt Effect
+  function onSlotMouseMove(e: React.MouseEvent<HTMLDivElement>, isActive: boolean) {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    el.style.setProperty('--mx', `${x}px`);
+    el.style.setProperty('--my', `${y}px`);
+    if (isActive && !reduced && !dragging) {
+      const px = x / rect.width - 0.5;
+      const py = y / rect.height - 0.5;
+      el.style.transform = `rotateX(${(-py * 5).toFixed(2)}deg) rotateY(${(px * 5).toFixed(2)}deg)`;
+    }
+  }
+
+  function onSlotMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
+    e.currentTarget.style.transform = '';
+  }
+
+  // Card click triggers selection or opens dynamic lightbox
+  const handleCardClick = (idx: number) => {
+    if (movedRef.current) return; // Prevent clicking during a drag gesture
+    if (idx === active) {
+      setIframeLoading(true);
+      setExpandedNotice(displayNotices[idx]);
+    } else {
+      goTo(idx);
+    }
+  };
 
   return (
-    <div className="w-full select-none mb-6">
-      {/* Collapsed Top Banner */}
+    <div className="w-full">
+      {/* Collapsed Ticker Bar */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="group relative cursor-pointer overflow-hidden rounded-xl border border-amber-500/20 bg-amber-500/[0.03] px-4 py-3 text-xs flex flex-row items-center justify-between gap-3 text-amber-200/90 shadow-sm transition hover:bg-amber-500/[0.06] hover:border-amber-500/30"
+        className="glass-weak border border-amber-500/10 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-amber-500/[0.03] hover:border-amber-500/20 transition-all duration-300 select-none"
       >
-        {/* Border Glow Accents */}
-        <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-amber-500 to-amber-600" />
-        
-        <div className="flex items-center gap-3 overflow-hidden flex-1">
-          <span className="relative flex h-2 w-2 shrink-0">
+        <div className="flex items-center gap-2.5 overflow-hidden flex-1">
+          <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
-          <Megaphone className="h-4 w-4 text-amber-400 shrink-0" />
-          <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px] shrink-0">MAKAUT Notice:</span>
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-500/90 whitespace-nowrap">
+            MAKAUT Notice Center
+          </span>
+          <span className="text-white/20">|</span>
           
-          <div className="relative h-5 overflow-hidden flex-1">
-            <AnimatePresence mode="wait">
-              {!isOpen && (
-                <motion.div
-                  key={currentCollapsedIndex}
-                  initial={{ y: 15, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -15, opacity: 0 }}
-                  transition={{ duration: 0.35, ease: "easeInOut" }}
-                  className="font-medium truncate pr-4 text-slate-200 group-hover:text-amber-100"
-                >
-                  {activeCollapsedNotice.title}
-                </motion.div>
-              )}
-              {isOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="font-semibold text-amber-400 tracking-wide"
-                >
-                  Notice Center (Showing {displayNotices.length} Updates)
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.span 
+              key={currentCollapsedIndex}
+              initial={{ y: 8, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -8, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="text-xs sm:text-sm font-medium text-slate-300 truncate pr-4"
+            >
+              {activeCollapsedNotice.title}
+            </motion.span>
+          </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-[10px] text-amber-500/60 font-mono hidden md:inline">
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:inline text-[10px] font-mono text-slate-500">
             {!isOpen && new Date(activeCollapsedNotice.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </span>
           <button 
@@ -128,111 +280,232 @@ export function NoticeDropdown({ notices }: Props) {
         </div>
       </div>
 
-      {/* Expanded Carousel Dropdown */}
+      {/* Expanded Coverflow Carousel Container */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="glass-strong border border-white/[0.06] rounded-2xl p-4 mt-2 bg-[#0D0F10]/95 backdrop-blur-md shadow-2xl relative overflow-hidden group/notice-viewer transition-all duration-300 hover:border-[#4AA6A8]/30 hover:shadow-[0_0_30px_rgba(74,166,168,0.1)]">
+            <div 
+              role="region"
+              aria-label="Notices coverflow"
+              tabIndex={0}
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
+              onFocusCapture={() => setFocused(true)}
+              onBlurCapture={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+              }}
+              onKeyDown={onKeyDown}
+              className="glass-strong border border-white/[0.06] rounded-2xl p-4 mt-3 bg-[#0D0F10]/95 backdrop-blur-md shadow-2xl relative outline-none"
+            >
               
-              {/* Sliding Title Header at the top (Fades in & slides down on hover) */}
-              <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-[#0D0F10]/95 via-[#0D0F10]/70 to-transparent px-6 pb-8 pt-5 z-20 transition-all duration-300 opacity-0 -translate-y-2 pointer-events-none group-hover/notice-viewer:opacity-100 group-hover/notice-viewer:translate-y-0 flex flex-col gap-1.5">
-                <span className="text-[#4AA6A8] text-[9px] font-mono font-bold tracking-widest uppercase">
-                  Published: {new Date(activeCarouselNotice.published_at).toLocaleDateString(undefined, { 
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                  })} | Notice {currentCarouselIndex + 1} of {displayNotices.length}
-                </span>
-                <h4 className="text-sm font-semibold text-[#E8E8E5] tracking-wide leading-relaxed truncate max-w-[90%]">
-                  {activeCarouselNotice.title}
-                </h4>
+              {/* Coverflow Stage */}
+              <div
+                className="carousel-stage relative h-[380px] touch-pan-y select-none overflow-x-clip sm:h-[340px] mt-2"
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={endDrag}
+                onPointerLeave={endDrag}
+                onPointerCancel={endDrag}
+                onWheel={onWheel}
+              >
+                <div
+                  className="carousel-track pointer-events-none relative h-full"
+                  style={{
+                    transform: `translateX(${dragging ? dragX * 0.35 : 0}px)`,
+                    transition: dragging ? 'none' : undefined,
+                  }}
+                >
+                  {displayNotices.map((notice, i) => {
+                    let rel = i - active;
+                    if (rel > count / 2) rel -= count;
+                    if (rel < -count / 2) rel += count;
+
+                    const isActive = rel === 0;
+                    const isHidden = Math.abs(rel) > 1;
+
+                    return (
+                      <div
+                        key={notice.link + '-' + i}
+                        className="carousel-slot absolute left-1/2 top-1/2 h-full w-[86%] sm:w-[50%]"
+                        style={slotStyle(rel, reduced)}
+                        aria-hidden={isHidden || undefined}
+                      >
+                        <div
+                          className="carousel-tilt h-full cursor-pointer"
+                          onMouseMove={(e) => onSlotMouseMove(e, isActive)}
+                          onMouseLeave={onSlotMouseLeave}
+                          onClick={() => handleCardClick(i)}
+                        >
+                          {/* Mini Glassy PDF Card */}
+                          <div className={`relative h-full w-full rounded-2xl border bg-white/[0.01] shadow-xl overflow-hidden transition-all duration-300 flex flex-col justify-center items-center ${
+                            isActive 
+                              ? 'border-white/20 hover:border-[#4AA6A8]/40 shadow-[0_0_25px_rgba(74,166,168,0.06)]' 
+                              : 'border-white/5 opacity-40 hover:opacity-60'
+                          }`}>
+                            
+                            {/* PDF Preview Frame (Pointer events disabled in slider to allow dragging) */}
+                            {notice.link ? (
+                              <div className="w-full h-full pointer-events-none select-none z-0 rounded-2xl overflow-hidden">
+                                <iframe
+                                  src={`${notice.link}#toolbar=0&navpanes=0&scrollbar=0`}
+                                  className="w-full h-full border-0 scale-[1.01]"
+                                  title={notice.title}
+                                  loading="lazy"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center gap-3 p-6 text-slate-500">
+                                <FileText className="h-10 w-10 text-white/25" />
+                                <span className="text-xs">No PDF link available</span>
+                              </div>
+                            )}
+
+                            {/* Active Card Click-to-Expand Indicator Overlay */}
+                            {isActive && (
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-5 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
+                                <span className="text-[10px] font-bold text-[#4AA6A8] tracking-widest uppercase mb-0.5">
+                                  Click to Open Notice
+                                </span>
+                                <h5 className="text-xs font-semibold text-white truncate max-w-full">
+                                  {notice.title}
+                                </h5>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Floating Side Navigation Controls (Only shown on hover) */}
-              {displayNotices.length > 1 && (
+              {/* Prev / Next Chevrons outside track */}
+              {count > 1 && (
                 <>
                   <button
-                    onClick={handlePrev}
-                    className="absolute left-6 top-1/2 -translate-y-1/2 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#0D0F10]/60 text-slate-300 backdrop-blur-md hover:bg-[#4AA6A8]/20 hover:text-white hover:border-[#4AA6A8]/45 transition opacity-0 group-hover/notice-viewer:opacity-100 duration-300 shadow-lg"
+                    type="button"
+                    onClick={prev}
                     aria-label="Previous notice"
+                    className="absolute left-4 top-1/2 z-40 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#0D0F10]/60 text-slate-400 hover:text-white hover:border-[#4AA6A8]/40 hover:bg-white/5 transition"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={handleNext}
-                    className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#0D0F10]/60 text-slate-300 backdrop-blur-md hover:bg-[#4AA6A8]/20 hover:text-white hover:border-[#4AA6A8]/45 transition opacity-0 group-hover/notice-viewer:opacity-100 duration-300 shadow-lg"
+                    type="button"
+                    onClick={next}
                     aria-label="Next notice"
+                    className="absolute right-4 top-1/2 z-40 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#0D0F10]/60 text-slate-400 hover:text-white hover:border-[#4AA6A8]/40 hover:bg-white/5 transition"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
                 </>
               )}
 
-              {/* PDF Viewer Container */}
-              <div className="relative min-h-[300px] lg:min-h-[550px] w-full rounded-xl overflow-hidden flex flex-col justify-center items-center shadow-inner">
-                {/* Glassy Loading Overlay */}
-                {iframeLoading && (
-                  <div className="absolute inset-0 bg-[#0D0F10]/85 flex flex-col items-center justify-center gap-3 z-10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#4AA6A8]"></div>
-                    <span className="text-xs text-slate-400 font-medium animate-pulse">Loading Notice Document...</span>
-                  </div>
-                )}
-
-                {/* Mobile Fallback View (PDFs can't be rendered inline on mobile) */}
-                <div className="block lg:hidden w-full p-8 text-center z-0">
-                  <span className="text-[10px] text-amber-500/60 font-mono mb-2 block uppercase tracking-wider">
-                    {new Date(activeCarouselNotice.published_at).toLocaleDateString(undefined, { 
-                      month: 'short', day: 'numeric', year: 'numeric' 
-                    })}
-                  </span>
-                  <h4 className="text-sm font-semibold text-[#E8E8E5] leading-relaxed mb-5 max-w-md mx-auto">
-                    {activeCarouselNotice.title}
-                  </h4>
-                  <a
-                    href={activeCarouselNotice.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#4AA6A8] text-black font-bold text-xs hover:bg-[#5bc1c3] transition shadow-lg"
-                  >
-                    Download / Open PDF
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-
-                {/* Desktop Embedded PDF Viewer (Zooms on container hover) */}
-                {activeCarouselNotice.link && (
-                  <div className="hidden lg:block w-full h-[550px] transition-transform duration-500 ease-out group-hover/notice-viewer:scale-[1.018] z-0 border border-white/5 rounded-xl overflow-hidden">
-                    <iframe
-                      src={`${activeCarouselNotice.link}#toolbar=0&navpanes=0&scrollbar=0`}
-                      className="w-full h-full border-0"
-                      onLoad={() => setIframeLoading(false)}
-                      title={activeCarouselNotice.title}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Dots Pagination Indicator (Shown on hover) */}
-              {displayNotices.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 opacity-0 group-hover/notice-viewer:opacity-100 transition-opacity duration-300 pointer-events-none">
-                  {displayNotices.map((_, idx) => (
+              {/* Pagination indicators */}
+              {count > 1 && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  {displayNotices.map((_, i) => (
                     <button
-                      key={idx}
-                      onClick={() => setCurrentCarouselIndex(idx)}
-                      className={`h-1.5 rounded-full transition-all duration-300 pointer-events-auto ${
-                        idx === currentCarouselIndex ? 'w-5 bg-[#4AA6A8]' : 'w-1.5 bg-white/25 hover:bg-white/50'
-                      }`}
-                      aria-label={`Go to notice ${idx + 1}`}
+                      key={i}
+                      type="button"
+                      onClick={() => goTo(i)}
+                      aria-label={`Go to notice ${i + 1}`}
+                      className="h-1.5 rounded-full transition-all duration-300"
+                      style={
+                        i === active
+                          ? { width: 18, background: '#4AA6A8' }
+                          : { width: 6, background: 'rgba(255, 255, 255, 0.15)' }
+                      }
                     />
                   ))}
                 </div>
               )}
-
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox Modal (Click-to-Expand Zoom View) */}
+      <AnimatePresence>
+        {expandedNotice && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md"
+            onClick={() => setExpandedNotice(null)}
+          >
+            {/* Modal Body Container */}
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="w-full max-w-5xl bg-[#0D0F10]/95 border border-[#4AA6A8]/20 rounded-2xl p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()} // Stop propagation to prevent closing
+            >
+              
+              {/* Transparent Surrounding Grid Header with Heading at the top */}
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-mono font-bold text-[#4AA6A8] tracking-widest uppercase">
+                    PUBLISHED ON {new Date(expandedNotice.published_at).toLocaleDateString(undefined, {
+                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    })}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-bold text-white mt-1 leading-relaxed">
+                    {expandedNotice.title}
+                  </h3>
+                </div>
+                
+                <div className="flex items-center gap-2 shrink-0">
+                  {expandedNotice.link && (
+                    <a
+                      href={expandedNotice.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-[#4AA6A8] hover:bg-white/10 hover:border-[#4AA6A8]/40 transition"
+                      title="Open notice in a new tab"
+                    >
+                      <ExternalLink className="h-4.5 w-4.5" />
+                    </a>
+                  )}
+                  <button 
+                    onClick={() => setExpandedNotice(null)}
+                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 hover:border-red-500/40 transition"
+                    aria-label="Close details"
+                  >
+                    <X className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Large Zoomed PDF Viewer with Transparent Surrounding */}
+              <div className="relative w-full h-[65vh] sm:h-[72vh] rounded-xl border border-white/10 bg-black/40 overflow-hidden flex items-center justify-center">
+                {iframeLoading && (
+                  <div className="absolute inset-0 bg-[#0D0F10]/80 flex flex-col items-center justify-center gap-3 z-10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#4AA6A8]"></div>
+                    <span className="text-xs text-slate-400 font-medium animate-pulse">Loading Notice Document...</span>
+                  </div>
+                )}
+                
+                {/* Embedded PDF iframe */}
+                {expandedNotice.link && (
+                  <iframe
+                    src={`${expandedNotice.link}#toolbar=0&navpanes=0`}
+                    className="w-full h-full border-0 bg-transparent rounded-xl"
+                    onLoad={() => setIframeLoading(false)}
+                    title={expandedNotice.title}
+                  />
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

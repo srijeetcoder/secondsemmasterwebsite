@@ -582,172 +582,72 @@ export function HubClient({ authError }: { authError: string | null }) {
         onSignOut={signOut}
       />
 
-      {/* Mock Google Search Results Page Overlay */}
+      {/* Authentic Google Search Page Overlay (Proxied Iframe) */}
       <AnimatePresence>
         {showGoogleOverlay && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col bg-[#171717] text-[#e8eaed] overflow-y-auto"
+            className="fixed inset-0 z-50 flex flex-col bg-[#171717]"
           >
-            {/* 1. Google Header */}
-            <header className="sticky top-0 z-10 flex flex-col border-b border-[#3c4043] bg-[#202124] px-4 py-3 sm:px-8">
-              <div className="flex items-center gap-4 sm:gap-8">
-                {/* Close Button */}
+            {/* Header bar */}
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-8 bg-[#202124] text-[#e8eaed] shrink-0">
+              <div className="flex items-center gap-4 sm:gap-6 min-w-0 pr-4">
                 <button
                   onClick={() => setShowGoogleOverlay(false)}
+                  aria-label="Close Google Search"
                   className="rounded-lg p-1.5 text-slate-400 hover:bg-[#303134] hover:text-[#e8eaed] transition shrink-0"
                 >
                   <X className="h-5 w-5" />
                 </button>
-
-                {/* Google Logo */}
-                <div className="flex items-center text-xl font-bold tracking-tight select-none shrink-0">
+                <div className="flex items-center text-lg font-bold tracking-tight select-none shrink-0">
                   <span className="text-[#4285F4]">G</span>
                   <span className="text-[#EA4335]">o</span>
                   <span className="text-[#FBBC05]">o</span>
                   <span className="text-[#4285F4]">g</span>
                   <span className="text-[#34A853]">l</span>
                   <span className="text-[#EA4335]">e</span>
+                  <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider ml-2 bg-[#303134] px-1.5 py-0.5 rounded border border-white/5">
+                    Live Engine
+                  </span>
                 </div>
-
-                {/* Replica Search Box */}
-                <div className="relative flex-1 max-w-2xl">
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                      }
-                    }}
-                    className="w-full rounded-full border border-[#5f6368] bg-[#303134] py-2 px-5 pl-5 pr-12 text-sm text-white focus:border-[#8ab4f8] focus:bg-[#303134] focus:outline-none shadow-md"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-[#9aa0a6]">
-                    {searchLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-[#8ab4f8]" />
-                    ) : (
-                      <Search className="h-4 w-4 text-[#8ab4f8]" />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Google Navigation Tabs */}
-              <div className="mt-3 flex items-center gap-6 overflow-x-auto text-xs text-[#9aa0a6] select-none border-t border-[#3c4043]/30 pt-2 shrink-0">
-                <span className="flex items-center gap-1 border-b-2 border-[#8ab4f8] pb-1.5 text-[#8ab4f8] font-medium cursor-pointer">
-                  All
+                <span className="truncate text-sm text-slate-300 font-medium hidden sm:inline border-l border-white/10 pl-4">
+                  Query: &quot;{query}&quot;
                 </span>
-                <span className="pb-1.5 hover:text-[#e8eaed] cursor-pointer">Images</span>
-                <span className="pb-1.5 hover:text-[#e8eaed] cursor-pointer">Videos</span>
-                <span className="pb-1.5 hover:text-[#e8eaed] cursor-pointer">News</span>
-                <span className="pb-1.5 hover:text-[#e8eaed] cursor-pointer">Shopping</span>
-                <span className="pb-1.5 hover:text-[#e8eaed] cursor-pointer">Maps</span>
-                <span className="pb-1.5 hover:text-[#e8eaed] cursor-pointer">Books</span>
               </div>
-            </header>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(query)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-[#4AA6A8] transition hover:bg-white/10"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Google Tab
+                </a>
+                <button
+                  onClick={() => setShowGoogleOverlay(false)}
+                  aria-label="Close search"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-[#E8E8E5] transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
 
-            {/* 2. Google Search Results Layout */}
-            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 flex flex-col md:flex-row gap-8">
-               {/* Left Column: AI Overview + Organic Results */}
-               <div className="flex-1 max-w-3xl flex flex-col gap-6">
-                 {/* AI Overview Box */}
-                 {aiOverview && (
-                   <div className="rounded-2xl border border-[#303134] bg-[#202124] p-5 shadow-sm">
-                     <div className="flex items-start justify-between border-b border-[#3c4043]/55 pb-3 mb-4">
-                       <div className="flex items-center gap-2">
-                         <Sparkles className="h-4 w-4 text-[#8ab4f8]" />
-                         <h4 className="text-sm font-semibold text-[#8ab4f8] flex items-center gap-1.5">
-                           AI Overview
-                           <span className="px-1.5 py-0.5 rounded bg-[#303134] text-[9px] text-[#9aa0a6] border border-[#3c4043] font-mono">
-                             Gemini
-                           </span>
-                         </h4>
-                       </div>
-                       <div className="flex items-center gap-1.5 text-[10px] text-[#9aa0a6]">
-                         <button className="px-2 py-0.5 rounded border border-[#3c4043] bg-[#303134] hover:bg-[#3c4043] transition">
-                           বাংলা
-                         </button>
-                       </div>
-                     </div>
-                     <div 
-                       className="text-sm text-[#bdc1c6] leading-relaxed space-y-3 google-ai-text"
-                       dangerouslySetInnerHTML={{ __html: aiOverview }}
-                     />
-                   </div>
-                 )}
-
-                 {/* Organic Search Hits */}
-                 <div className="flex flex-col gap-6 mt-2">
-                   {searchResults.length > 0 ? (
-                     searchResults.map((result, idx) => {
-                       let displayDomain = 'web';
-                       try {
-                         displayDomain = new URL(result.link).hostname;
-                       } catch {}
-                       
-                       return (
-                         <div key={idx} className="flex flex-col gap-1 max-w-2xl">
-                           <span className="text-xs text-[#9aa0a6] truncate">
-                             {displayDomain} &rsaquo; wiki &rsaquo; {result.title.split(' ')[0] || ''}
-                           </span>
-                           <button
-                             type="button"
-                             onClick={() => {
-                               setActiveSearchLink(result.link);
-                               setActiveSearchTitle(result.title);
-                             }}
-                             className="text-left text-lg text-[#8ab4f8] hover:underline font-medium leading-snug w-full animate-fade-in"
-                           >
-                             {result.title}
-                           </button>
-                           {result.snippet && (
-                             <p className="text-xs text-[#bdc1c6] mt-1 leading-relaxed">
-                               {result.snippet}
-                             </p>
-                           )}
-                         </div>
-                       );
-                     })
-                   ) : (
-                     <div className="py-12 text-center text-[#9aa0a6] text-sm">
-                       {searchLoading ? 'Searching Google...' : 'No results found on Google. Try a different query.'}
-                     </div>
-                   )}
-                 </div>
-               </div>
-
-               {/* Right Column: Wikipedia Summary / Card Block */}
-               <div className="w-full md:w-80 shrink-0 flex flex-col gap-6">
-                 {searchResults.length > 0 && (
-                   <div className="rounded-xl border border-[#303134] bg-[#202124] p-4 flex flex-col gap-3">
-                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#9aa0a6]">
-                       Featured Knowledge Card
-                     </span>
-                     <h5 className="text-sm font-semibold text-white">
-                       {searchResults[0].title}
-                     </h5>
-                     <p className="text-xs text-[#bdc1c6] leading-relaxed">
-                       {searchResults[0].snippet || 'Explore topics, download notes guides, practical experiment documents, and academic summaries directly from the portal.'}
-                     </p>
-                     <button
-                       onClick={() => {
-                         setActiveSearchLink(searchResults[0].link);
-                         setActiveSearchTitle(searchResults[0].title);
-                       }}
-                       className="mt-2 w-full text-center text-xs font-semibold bg-[#303134] hover:bg-[#3c4043] py-2 rounded-lg text-[#8ab4f8] transition"
-                     >
-                       Quick Read Summary
-                     </button>
-                   </div>
-                 )}
-               </div>
-             </main>
-           </motion.div>
-         )}
-       </AnimatePresence>
+            {/* Google Proxy Iframe container */}
+            <div className="flex-1 bg-white relative">
+              <iframe
+                src={`/api/google?q=${encodeURIComponent(query)}`}
+                className="w-full h-full border-0 bg-white"
+                title="Google Search Engine"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
        {/* Web Search Result Iframe Overlay (Glass Lightbox) */}
        <AnimatePresence>

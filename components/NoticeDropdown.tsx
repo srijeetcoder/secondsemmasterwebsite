@@ -24,21 +24,21 @@ export function NoticeDropdown({ notices }: Props) {
   const displayNotices = notices.length > 0 ? notices : [
     {
       id: 'default-1',
-      title: "New Notice From MAKAUT - Semester 2 Exam Form Fill-up & Routine Published",
+      title: "Academic Council Election Notice",
       published_at: new Date().toISOString(),
-      link: "https://makautexams.net"
+      link: "https://makautwb.ac.in/datas/users/0-noti_aca_cncil_elect26.pdf"
     },
     {
       id: 'default-2',
-      title: "MAKAUT Direct Decentralized Admission Notice (2024-25)",
+      title: "Notice for B.Tech Decentralized Admission In-House (2024-25)",
       published_at: new Date(Date.now() - 86400000).toISOString(),
-      link: "https://makautwb.ac.in"
+      link: "https://makautwb.ac.in/datas/users/0-direc_adm_centra_inhouse24.pdf"
     },
     {
       id: 'default-3',
-      title: "Notification Regarding Caution Money Refund to Passed-Out Students",
+      title: "Notification Regarding Refund of Caution Money to Students",
       published_at: new Date(Date.now() - 172800000).toISOString(),
-      link: "https://makautwb.ac.in"
+      link: "https://makautwb.ac.in/datas/users/0-affiliacollege_refund_caution_money24.pdf"
     }
   ];
 

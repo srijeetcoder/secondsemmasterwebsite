@@ -63,6 +63,13 @@ export function NoticeDropdown({ notices }: Props) {
 
   const activeCarouselNotice = displayNotices[currentCarouselIndex];
 
+  const [iframeLoading, setIframeLoading] = useState(true);
+
+  // Reset loading spinner whenever active notice link changes
+  useEffect(() => {
+    setIframeLoading(true);
+  }, [activeCarouselNotice.link]);
+
   return (
     <div className="w-full select-none mb-6">
       {/* Collapsed Top Banner */}
@@ -133,70 +140,107 @@ export function NoticeDropdown({ notices }: Props) {
           >
             <div className="glass-strong border border-white/[0.06] rounded-xl p-5 mt-2 bg-[#0D0F10]/95 backdrop-blur-md shadow-2xl relative">
               
-              {/* Carousel Panel */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 min-h-[140px]">
+              {/* Carousel Panel with PDF inline preview */}
+              <div className="flex flex-col lg:flex-row items-stretch justify-between gap-6 min-h-[450px]">
                 
                 {/* Notice Info Card */}
-                <div className="flex-1 space-y-3 w-full">
-                  <div className="flex items-center gap-2 text-slate-400 text-[11px] font-medium">
-                    <Calendar className="h-3.5 w-3.5 text-[#4AA6A8]" />
-                    <span>Published on: {new Date(activeCarouselNotice.published_at).toLocaleDateString(undefined, { 
-                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                    })}</span>
-                    <span className="text-white/10">|</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300 font-mono text-[9px]">
-                      {currentCarouselIndex + 1} of {displayNotices.length}
-                    </span>
+                <div className="flex-[4] flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-slate-400 text-[11px] font-medium">
+                      <Calendar className="h-3.5 w-3.5 text-[#4AA6A8]" />
+                      <span>Published on: {new Date(activeCarouselNotice.published_at).toLocaleDateString(undefined, { 
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                      })}</span>
+                      <span className="text-white/10">|</span>
+                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300 font-mono text-[9px]">
+                        {currentCarouselIndex + 1} of {displayNotices.length}
+                      </span>
+                    </div>
+
+                    <motion.h4 
+                      key={currentCarouselIndex}
+                      initial={{ x: 15, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-base font-semibold text-[#E8E8E5] leading-relaxed"
+                    >
+                      {activeCarouselNotice.title}
+                    </motion.h4>
+                    
+                    {activeCarouselNotice.link && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                      >
+                        <a
+                          href={activeCarouselNotice.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 font-bold text-xs text-[#4AA6A8] hover:text-[#5bc1c3] transition underline underline-offset-4"
+                        >
+                          Open in New Tab
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </motion.div>
+                    )}
                   </div>
 
-                  <motion.h4 
-                    key={currentCarouselIndex}
-                    initial={{ x: 15, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-base font-semibold text-[#E8E8E5] leading-relaxed"
-                  >
-                    {activeCarouselNotice.title}
-                  </motion.h4>
-                  
-                  {activeCarouselNotice.link && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                    >
-                      <a
-                        href={activeCarouselNotice.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 font-bold text-xs text-[#4AA6A8] hover:text-[#5bc1c3] transition underline underline-offset-4"
+                  {/* Navigation Controls */}
+                  {displayNotices.length > 1 && (
+                    <div className="flex items-center gap-3 mt-4">
+                      <button
+                        onClick={handlePrev}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-slate-400 transition hover:bg-white/5 hover:text-white hover:border-[#4AA6A8]/50"
+                        aria-label="Previous notice"
                       >
-                        Open Official Notice Document
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </motion.div>
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-slate-400 transition hover:bg-white/5 hover:text-white hover:border-[#4AA6A8]/50"
+                        aria-label="Next notice"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {/* Navigation Controls */}
-                {displayNotices.length > 1 && (
-                  <div className="flex items-center gap-3 shrink-0">
-                    <button
-                      onClick={handlePrev}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-slate-400 transition hover:bg-white/5 hover:text-white hover:border-[#4AA6A8]/50"
-                      aria-label="Previous notice"
+                {/* PDF Viewer */}
+                <div className="flex-[8] min-h-[350px] lg:min-h-[450px] relative rounded-xl border border-white/10 bg-white/[0.01] overflow-hidden flex flex-col justify-center items-center shadow-inner">
+                  {/* Glassy Loading Overlay */}
+                  {iframeLoading && (
+                    <div className="absolute inset-0 bg-[#0D0F10]/85 flex flex-col items-center justify-center gap-3 z-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#4AA6A8]"></div>
+                      <span className="text-xs text-slate-400 font-medium">Loading Notice Document...</span>
+                    </div>
+                  )}
+
+                  {/* Mobile PDF Fallback */}
+                  <div className="block lg:hidden w-full p-6 text-center z-0">
+                    <p className="text-sm text-slate-400 mb-3">Notice PDF previews are best viewed on desktop screens.</p>
+                    <a
+                      href={activeCarouselNotice.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4AA6A8] text-black font-bold text-xs hover:bg-[#5bc1c3] transition"
                     >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={handleNext}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-slate-400 transition hover:bg-white/5 hover:text-white hover:border-[#4AA6A8]/50"
-                      aria-label="Next notice"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
+                      Download / Open PDF
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </div>
-                )}
+
+                  {/* Desktop Inline PDF Viewer */}
+                  {activeCarouselNotice.link && (
+                    <iframe
+                      src={`${activeCarouselNotice.link}#toolbar=0&navpanes=0&scrollbar=0`}
+                      className="hidden lg:block w-full h-full min-h-[450px] border-0 rounded-xl"
+                      onLoad={() => setIframeLoading(false)}
+                      title={activeCarouselNotice.title}
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Dots Indicator */}

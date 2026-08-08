@@ -20,6 +20,7 @@ export async function GET(req: Request) {
     }
 
     const searchResults: { title: string; link: string; snippet: string }[] = [];
+    let aiOverview = '';
 
     // 2. Fetch search results from DuckDuckGo HTML (Primary)
     try {
@@ -110,6 +111,40 @@ export async function GET(req: Request) {
         console.error('[search-api] Yahoo Search fallback also failed:', yahooErr);
       }
     }
+    // 2.3 DuckDuckGo JSON API Fallback (runs if external HTML scrapers return 0 results)
+    if (searchResults.length === 0) {
+      try {
+        console.warn('[search-api] HTML scrapers returned zero results, executing DuckDuckGo JSON API fallback...');
+        const ddgApiUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_html=1`;
+        const res = await fetch(ddgApiUrl);
+        if (res.ok) {
+          const data = await res.json();
+          
+          // Fallback Abstract text as AI Overview
+          if (!aiOverview && data.AbstractText) {
+            aiOverview = `<p>${data.AbstractText}</p>`;
+          }
+          
+          if (Array.isArray(data.RelatedTopics)) {
+            for (const topic of data.RelatedTopics) {
+              if (topic.FirstURL && topic.Text && searchResults.length < 8) {
+                const textParts = topic.Text.split(' - ');
+                const title = textParts[0] || topic.Text;
+                const snippet = textParts.slice(1).join(' - ') || topic.Text;
+                
+                searchResults.push({
+                  title: title.replace(/&amp;/g, '&'),
+                  link: topic.FirstURL,
+                  snippet: snippet.replace(/&amp;/g, '&')
+                });
+              }
+            }
+          }
+        }
+      } catch (ddgApiErr) {
+        console.error('[search-api] DuckDuckGo JSON API fallback failed:', ddgApiErr);
+      }
+    }
 
     // 2.5 Final resilient local backup (if no results were fetched from external sources)
     if (searchResults.length === 0) {
@@ -142,11 +177,17 @@ export async function GET(req: Request) {
         }
       ];
 
-      const queryWords = q.split(/\s+/).filter(w => w.length > 1);
+      const queryWords = q.split(/\s+/).filter(w => w.length > 0);
       for (const info of subjectsInfo) {
-        const matchesKeyword = info.keywords.some(k => 
-          q.includes(k) || queryWords.some(word => k.includes(word))
-        );
+        const matchesKeyword = info.keywords.some(k => {
+          if (k.length === 1) {
+            return queryWords.includes(k);
+          }
+          return queryWords.some(word => {
+            const singular = word.endsWith('s') && word.length > 3 ? word.slice(0, -1) : word;
+            return word === k || singular === k || k.includes(word) || k.includes(singular);
+          });
+        });
         if (matchesKeyword || info.title.toLowerCase().includes(q)) {
           searchResults.push({
             title: info.title,
@@ -158,7 +199,6 @@ export async function GET(req: Request) {
     }
 
     // 3. Fetch Gemini AI Overview (Supports multi-key fallbacks)
-    let aiOverview = '';
     const geminiKeys = [
       process.env.GEMINI_API_KEY,
       process.env.GEMINI_API_KEY_1,

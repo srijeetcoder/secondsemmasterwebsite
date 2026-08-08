@@ -89,10 +89,17 @@ export function filterSubjects(subjects: Subject[], query: string): Subject[] {
   const q = query.trim().toLowerCase();
   if (!q) return subjects;
 
-  return subjects.filter((s) =>
-    [s.code, s.title, s.badge, s.description, ...s.keywords]
+  const queryWords = q.split(/\s+/).filter(w => w.length > 0);
+
+  return subjects.filter((s) => {
+    const metadata = [s.code, s.title, s.badge, s.description, ...s.keywords]
       .join(' ')
-      .toLowerCase()
-      .includes(q),
-  );
+      .toLowerCase();
+    
+    // All search terms must match somewhere in the metadata
+    return queryWords.every((word) => {
+      const singularWord = word.endsWith('s') && word.length > 3 ? word.slice(0, -1) : word;
+      return metadata.includes(word) || metadata.includes(singularWord);
+    });
+  });
 }

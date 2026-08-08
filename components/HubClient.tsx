@@ -66,10 +66,15 @@ export function HubClient({ authError }: { authError: string | null }) {
     for (const item of SEARCH_INDEX) {
       const matchesKeyword = item.keywords.some(k => k.includes(q)) || item.title.toLowerCase().includes(q);
       if (matchesKeyword) {
+        let displayCategory = 'Lecture';
+        if (item.category === 'practical') displayCategory = 'Practical';
+        else if (item.category === 'solved-problem') displayCategory = 'Solved Problem';
+        else if (item.category === 'viva') displayCategory = 'Viva Prep';
+
         list.push({
           type: 'topic',
           label: item.title,
-          sublabel: `${item.subjectCode} · Lecture`,
+          sublabel: `${item.subjectCode} · ${displayCategory}`,
           url: buildHandoffUrl(item.url, session),
           snippet: item.snippet
         });

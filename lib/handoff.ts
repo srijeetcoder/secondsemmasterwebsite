@@ -72,6 +72,8 @@ export function buildHandoffUrl(baseUrl: string, session: Session | null): strin
   if (url.protocol !== 'https:') return baseUrl;
   if (!ALLOWED_HANDOFF_ORIGINS.includes(url.origin)) return baseUrl;
 
+  const originalHash = url.hash && url.hash !== '#' ? url.hash.substring(1) : '';
+
   const payload = new URLSearchParams({
     access_token: session.access_token,
     refresh_token: session.refresh_token,
@@ -79,6 +81,10 @@ export function buildHandoffUrl(baseUrl: string, session: Session | null): strin
     token_type: session.token_type ?? 'bearer',
     type: 'sso_handoff',
   });
+
+  if (originalHash) {
+    payload.set('redirect_hash', originalHash);
+  }
 
   if (HANDOFF_MODE === 'hash') {
     url.hash = payload.toString();

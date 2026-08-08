@@ -19,50 +19,137 @@ export async function GET(req: Request) {
       searchQuery = `site:cnotesbycsrijeet.vercel.app OR site:chem-notes-nhm8.vercel.app OR site:pracchem.vercel.app OR site:mathsnotesbysrijeet.vercel.app ${query}`;
     }
 
-    // 2. Fetch search results from DuckDuckGo HTML
-    const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
-    const searchRes = await fetch(ddgUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
-
-    if (!searchRes.ok) {
-      throw new Error(`Failed to fetch search results: ${searchRes.statusText}`);
-    }
-
-    const html = await searchRes.text();
     const searchResults: { title: string; link: string; snippet: string }[] = [];
 
-    // Parse DDG HTML results using Regex
-    const resultBlockRegex = /<div class="result[^"]*">([\s\S]*?)<\/div>\s*<\/div>/gi;
-    let match;
-    while ((match = resultBlockRegex.exec(html)) !== null && searchResults.length < 8) {
-      const block = match[1];
-      const titleRegex = /<a class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i;
-      const snippetRegex = /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i;
+    // 2. Fetch search results from DuckDuckGo HTML (Primary)
+    try {
+      const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+      const searchRes = await fetch(ddgUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      });
 
-      const titleMatch = titleRegex.exec(block);
-      const snippetMatch = snippetRegex.exec(block);
+      if (!searchRes.ok) {
+        throw new Error(`Failed to fetch search results: ${searchRes.statusText}`);
+      }
 
-      if (titleMatch) {
-        let url = titleMatch[1];
-        if (url.includes('uddg=')) {
-          const parts = url.split('uddg=');
-          if (parts[1]) {
-            url = decodeURIComponent(parts[1].split('&')[0]);
+      const html = await searchRes.text();
+
+      // Parse DDG HTML results using Regex
+      const resultBlockRegex = /<div class="result[^"]*">([\s\S]*?)<\/div>\s*<\/div>/gi;
+      let match;
+      while ((match = resultBlockRegex.exec(html)) !== null && searchResults.length < 8) {
+        const block = match[1];
+        const titleRegex = /<a class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i;
+        const snippetRegex = /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i;
+
+        const titleMatch = titleRegex.exec(block);
+        const snippetMatch = snippetRegex.exec(block);
+
+        if (titleMatch) {
+          let url = titleMatch[1];
+          if (url.includes('uddg=')) {
+            const parts = url.split('uddg=');
+            if (parts[1]) {
+              url = decodeURIComponent(parts[1].split('&')[0]);
+            }
+          }
+
+          const title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
+          const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+
+          searchResults.push({
+            title: title.replace(/&amp;/g, '&'),
+            link: url,
+            snippet: snippet.replace(/&amp;/g, '&'),
+          });
+        }
+      }
+    } catch (ddgErr) {
+      console.warn('[search-api] Primary search (DuckDuckGo) failed, trying Yahoo Search fallback...', ddgErr);
+      
+      try {
+        const yahooUrl = `https://search.yahoo.com/search?p=${encodeURIComponent(searchQuery)}`;
+        const yahooRes = await fetch(yahooUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        });
+
+        if (yahooRes.ok) {
+          const yahooHtml = await yahooRes.text();
+          const yahooResultRegex = /<h3[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
+          let yMatch;
+          while ((yMatch = yahooResultRegex.exec(yahooHtml)) !== null && searchResults.length < 8) {
+            const block = yMatch[1];
+            const linkRegex = /<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i;
+            const linkMatch = linkRegex.exec(block);
+
+            if (linkMatch) {
+              let url = linkMatch[1];
+              if (url.includes('RU=')) {
+                const parts = url.split('RU=');
+                if (parts[1]) {
+                  url = decodeURIComponent(parts[1].split('/RK=')[0]);
+                }
+              }
+
+              const title = linkMatch[2].replace(/<[^>]*>/g, '').trim();
+              if (title && url.startsWith('http')) {
+                searchResults.push({
+                  title: title.replace(/&amp;/g, '&'),
+                  link: url,
+                  snippet: 'Direct link to ' + new URL(url).hostname,
+                });
+              }
+            }
           }
         }
+      } catch (yahooErr) {
+        console.error('[search-api] Yahoo Search fallback also failed:', yahooErr);
+      }
+    }
 
-        const title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
-        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+    // 2.5 Final resilient local backup (if no results were fetched from external sources)
+    if (searchResults.length === 0) {
+      console.log('[search-api] Both search engines returned zero hits, falling back to local index matches...');
+      const q = query.toLowerCase();
+      const subjectsInfo = [
+        {
+          title: 'Basic CS & Programming Notes (ESCS 201)',
+          link: 'https://cnotesbycsrijeet.vercel.app/',
+          keywords: ['c', 'programming', 'code', 'loops', 'pointers', 'arrays', 'recursion', 'structure', 'function', 'syntax'],
+          snippet: 'Access C programming lecture notes, arrays, loops, functions, algorithms, and compiler guides.'
+        },
+        {
+          title: 'Chemistry-I Notes (BSCH 201)',
+          link: 'https://chem-notes-nhm8.vercel.app/',
+          keywords: ['chemistry', 'molecular', 'kinetics', 'spectroscopy', 'thermodynamics', 'bonding', 'orbitals', 'reaction'],
+          snippet: 'Access Chemistry lecture material, molecular orbitals, reaction kinetics, and spectroscopic theory.'
+        },
+        {
+          title: 'Chemistry Laboratory Manuals (BSCH 291)',
+          link: 'https://pracchem.vercel.app/',
+          keywords: ['lab', 'practical', 'experiment', 'titration', 'observation', 'viva', 'manual', 'burette', 'acid', 'base'],
+          snippet: 'Access practical titration observation sheets, lab guides, standard calculations, and viva questions.'
+        },
+        {
+          title: 'Mathematics-II Solved Tutorials (BSM 201)',
+          link: 'https://mathsnotesbysrijeet.vercel.app/',
+          keywords: ['maths', 'mathematics', 'differential', 'equations', 'linear algebra', 'matrix', 'calculus', 'eigenvalue', 'vector'],
+          snippet: 'Access solved math tutorials, eigenvalues, linear algebra matrix solvers, and differential equations notes.'
+        }
+      ];
 
-        // Clean up title and snippet formatting
-        searchResults.push({
-          title: title.replace(/&amp;/g, '&'),
-          link: url,
-          snippet: snippet.replace(/&amp;/g, '&'),
-        });
+      for (const info of subjectsInfo) {
+        if (info.keywords.some(k => q.includes(k)) || info.title.toLowerCase().includes(q)) {
+          searchResults.push({
+            title: info.title,
+            link: info.link,
+            snippet: info.snippet,
+          });
+        }
       }
     }
 

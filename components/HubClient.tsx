@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, GraduationCap, Search, SearchX, X } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Search, SearchX, X, Sparkles, ExternalLink } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AuthModal } from '@/components/AuthModal';
@@ -26,6 +26,41 @@ export function HubClient({ authError }: { authError: string | null }) {
   const [lockedSubject, setLockedSubject] = useState<Subject | null>(null);
   const [errorDismissed, setErrorDismissed] = useState(false);
   const [notices, setNotices] = useState<any[]>([]);
+
+  // Search states
+  const [searchGoogle, setSearchGoogle] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[]>([]);
+  const [aiOverview, setAiOverview] = useState('');
+
+  // Fetch search results on query change with debounce
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length <= 1) {
+      setSearchResults([]);
+      setAiOverview('');
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&google=${searchGoogle}`);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        if (data.success) {
+          setSearchResults(data.results);
+          setAiOverview(data.aiOverview);
+        }
+      } catch (err) {
+        console.error('[search] Error:', err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query, searchGoogle]);
 
   const results = useMemo(() => filterSubjects(SUBJECTS, query), [query]);
 
@@ -125,25 +160,44 @@ export function HubClient({ authError }: { authError: string | null }) {
             </span>
           </div>
 
-          <div className="relative flex-1 sm:mx-2">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by subject, course code, or topic…"
-              aria-label="Search subjects"
-              className="search-input w-full rounded-xl py-2.5 pl-10 pr-9 text-sm focus:outline-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery('')}
-                aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694]"
+          <div className="flex-1 sm:mx-2 flex flex-col gap-2">
+            <div className="relative w-full">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by subject, course code, or topic…"
+                aria-label="Search subjects"
+                className="search-input w-full rounded-xl py-2.5 pl-10 pr-9 text-sm focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {/* Google & AI Search Toggle Switch */}
+            <div className="flex items-center gap-2 px-1 text-xs select-none">
+              <button 
+                type="button"
+                onClick={() => setSearchGoogle(!searchGoogle)}
+                className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  searchGoogle ? 'bg-[#4AA6A8]' : 'bg-white/10'
+                }`}
               >
-                <X className="h-3.5 w-3.5" />
+                <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  searchGoogle ? 'translate-x-3' : 'translate-x-0'
+                }`} />
               </button>
-            )}
+              <span className="text-slate-400 font-medium text-[11px] leading-none">
+                Search Google & Gemini AI Overview
+              </span>
+            </div>
           </div>
 
           <div className="flex justify-end">
@@ -225,6 +279,90 @@ export function HubClient({ authError }: { authError: string | null }) {
             </p>
           </motion.div>
         </section>
+
+        {/* ---------------------------------------------------------------
+         * Search Results Overlay Section (Google Search & AI Overview)
+         * ------------------------------------------------------------- */}
+        <AnimatePresence>
+          {query.trim().length > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="glass-strong border border-white/[0.06] rounded-2xl p-5 mb-6 bg-[#0D0F10]/95 backdrop-blur-md shadow-2xl relative overflow-hidden flex flex-col gap-4"
+            >
+              {/* Search Panel Header */}
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#4AA6A8]" />
+                  <h3 className="text-sm font-semibold text-[#E8E8E5]">
+                    {searchGoogle ? 'Google Search & AI Overview' : 'Notes Websites Search Results'}
+                  </h3>
+                </div>
+                {searchLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t border-b border-[#4AA6A8]" />
+                )}
+              </div>
+
+              {/* Gemini AI Overview (Google Mode only) */}
+              {searchGoogle && aiOverview && (
+                <div className="rounded-xl border border-[#827A9B]/20 bg-gradient-to-br from-[#827A9B]/5 via-[#4AA6A8]/5 to-transparent p-4 sm:p-5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-[#4AA6A8]/5 blur-2xl rounded-full" />
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#4AA6A8] to-[#827A9B] text-black shadow-md">
+                      <Sparkles className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        AI Overview
+                        <span className="px-1.5 py-0.5 rounded bg-white/5 text-[8px] font-mono text-slate-500 border border-white/10 uppercase">
+                          Gemini
+                        </span>
+                      </h4>
+                      <div 
+                        className="mt-2.5 text-sm text-slate-300 leading-relaxed space-y-2 search-ai-content" 
+                        dangerouslySetInnerHTML={{ __html: aiOverview }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Organic Search Hits */}
+              <div className="flex flex-col gap-3">
+                {searchResults.length > 0 ? (
+                  searchResults.map((result, idx) => (
+                    <div key={idx} className="group/search-item flex flex-col gap-1 p-3 rounded-xl border border-white/[0.02] bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/5 transition duration-200">
+                      <a 
+                        href={result.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-sm font-semibold text-slate-200 hover:text-[#4AA6A8] hover:underline transition truncate flex items-center gap-1.5"
+                      >
+                        {result.title}
+                        <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover/search-item:opacity-100 transition-opacity duration-200" />
+                      </a>
+                      <span className="text-[10px] text-slate-500 font-mono truncate max-w-full">
+                        {result.link}
+                      </span>
+                      {result.snippet && (
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                          {result.snippet}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  !searchLoading && (
+                    <div className="text-center py-6 text-slate-500 text-xs">
+                      No results found on the {searchGoogle ? 'web' : 'notes sites'}. Try a different search term.
+                    </div>
+                  )
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ---------------------------------------------------------------
          * 3D subject carousel — the centerpiece, replacing the old 2x2 grid

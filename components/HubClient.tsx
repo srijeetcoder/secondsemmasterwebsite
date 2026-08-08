@@ -28,14 +28,12 @@ export function HubClient({ authError }: { authError: string | null }) {
   const [notices, setNotices] = useState<any[]>([]);
 
   // Search states
-  const [searchGoogle, setSearchGoogle] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[]>([]);
   const [aiOverview, setAiOverview] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeSearchLink, setActiveSearchLink] = useState<string | null>(null);
   const [activeSearchTitle, setActiveSearchTitle] = useState<string>('');
-  const [showGoogleOverlay, setShowGoogleOverlay] = useState(false);
 
   // Compute autocomplete search suggestions
   const recommendations = useMemo(() => {
@@ -82,45 +80,19 @@ export function HubClient({ authError }: { authError: string | null }) {
       }
     }
 
-    // 4. Default web search suggestion
+    // 4. Local AI Prompt Recommendation
     list.push({
       type: 'web',
-      label: `Search web for "${query}"`,
-      sublabel: searchGoogle ? 'Google & Gemini' : 'Notes domains only',
+      label: `Ask Local AI about "${query}"`,
+      sublabel: 'Syllabus Assistant',
       value: query
     });
 
-    // 5. Append organic results directly in recommendations if Google mode is active
-    if (searchGoogle && searchResults.length > 0) {
-      for (const res of searchResults) {
-        let domain = 'web';
-        try {
-          domain = new URL(res.link).hostname;
-        } catch {}
-        list.push({
-          type: 'web',
-          label: res.title,
-          sublabel: domain,
-          value: res.title,
-          link: res.link
-        });
-      }
-    }
-
-    return list.slice(0, 8); // Limit to top 8 items
-  }, [query, notices, searchGoogle, searchResults]);
+    return list.slice(0, 6); // Limit to top 6 items
+  }, [query, notices]);
 
   const handleSelectRecommendation = (item: any) => {
-    if (item.link) {
-      setActiveSearchLink(item.link);
-      setActiveSearchTitle(item.label);
-    } else {
-      setQuery(item.value);
-      if (item.type === 'web' || searchGoogle) {
-        setSearchGoogle(true);
-        setShowGoogleOverlay(true);
-      }
-    }
+    setQuery(item.value);
     setDropdownOpen(false);
   };
 
@@ -136,7 +108,7 @@ export function HubClient({ authError }: { authError: string | null }) {
     const delayDebounceFn = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&google=${searchGoogle}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
         if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
         if (data.success) {
@@ -151,7 +123,7 @@ export function HubClient({ authError }: { authError: string | null }) {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, searchGoogle]);
+  }, [query]);
 
   const results = useMemo(() => filterSubjects(SUBJECTS, query), [query]);
 
@@ -266,9 +238,7 @@ export function HubClient({ authError }: { authError: string | null }) {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (searchGoogle) {
-                      setShowGoogleOverlay(true);
-                    }
+                    setDropdownOpen(false);
                   }
                 }}
                 placeholder="Search by subject, course code, or topic…"
@@ -317,23 +287,6 @@ export function HubClient({ authError }: { authError: string | null }) {
                   ))}
                 </div>
               )}
-            </div>
-            {/* Google & AI Search Toggle Switch */}
-            <div className="flex items-center gap-2 px-1 text-xs select-none">
-              <button 
-                type="button"
-                onClick={() => setSearchGoogle(!searchGoogle)}
-                className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  searchGoogle ? 'bg-[#4AA6A8]' : 'bg-white/10'
-                }`}
-              >
-                <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  searchGoogle ? 'translate-x-3' : 'translate-x-0'
-                }`} />
-              </button>
-              <span className="text-slate-400 font-medium text-[11px] leading-none">
-                Search Google & Gemini AI Overview
-              </span>
             </div>
           </div>
 
@@ -418,7 +371,7 @@ export function HubClient({ authError }: { authError: string | null }) {
         </section>
 
         {/* ---------------------------------------------------------------
-         * Search Results Overlay Section (Google Search & AI Overview)
+         * Search Results Overlay Section (Local Academic AI Assistant)
          * ------------------------------------------------------------- */}
         <AnimatePresence>
           {query.trim().length > 1 && (
@@ -433,7 +386,7 @@ export function HubClient({ authError }: { authError: string | null }) {
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-[#4AA6A8]" />
                   <h3 className="text-sm font-semibold text-[#E8E8E5]">
-                    {searchGoogle ? 'Google Search & AI Overview' : 'Notes Websites Search Results'}
+                    Local Academic AI Assistant
                   </h3>
                 </div>
                 {searchLoading && (
@@ -441,9 +394,9 @@ export function HubClient({ authError }: { authError: string | null }) {
                 )}
               </div>
 
-              {/* Gemini AI Overview (Google Mode only) */}
-              {searchGoogle && aiOverview && (
-                <div className="rounded-xl border border-[#827A9B]/20 bg-gradient-to-br from-[#827A9B]/5 via-[#4AA6A8]/5 to-transparent p-4 sm:p-5 relative overflow-hidden">
+              {/* Local AI Overview */}
+              {aiOverview && (
+                <div className="rounded-xl border border-[#4AA6A8]/20 bg-gradient-to-br from-[#4AA6A8]/5 via-[#827A9B]/5 to-transparent p-4 sm:p-5 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-[#4AA6A8]/5 blur-2xl rounded-full" />
                   <div className="flex items-start gap-3">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#4AA6A8] to-[#827A9B] text-black shadow-md">
@@ -451,9 +404,9 @@ export function HubClient({ authError }: { authError: string | null }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                        AI Overview
+                        Syllabus AI Assistant
                         <span className="px-1.5 py-0.5 rounded bg-white/5 text-[8px] font-mono text-slate-500 border border-white/10 uppercase">
-                          Gemini
+                          Local LLM
                         </span>
                       </h4>
                       <div 
@@ -494,7 +447,7 @@ export function HubClient({ authError }: { authError: string | null }) {
                 ) : (
                   !searchLoading && (
                     <div className="text-center py-6 text-slate-500 text-xs">
-                      No results found on the {searchGoogle ? 'web' : 'notes sites'}. Try a different search term.
+                      No results found on the notes sites. Try a different search term.
                     </div>
                   )
                 )}
@@ -582,72 +535,7 @@ export function HubClient({ authError }: { authError: string | null }) {
         onSignOut={signOut}
       />
 
-      {/* Authentic Google Search Page Overlay (Proxied Iframe) */}
-      <AnimatePresence>
-        {showGoogleOverlay && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col bg-[#171717]"
-          >
-            {/* Header bar */}
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-8 bg-[#202124] text-[#e8eaed] shrink-0">
-              <div className="flex items-center gap-4 sm:gap-6 min-w-0 pr-4">
-                <button
-                  onClick={() => setShowGoogleOverlay(false)}
-                  aria-label="Close Google Search"
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-[#303134] hover:text-[#e8eaed] transition shrink-0"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                <div className="flex items-center text-lg font-bold tracking-tight select-none shrink-0">
-                  <span className="text-[#4285F4]">G</span>
-                  <span className="text-[#EA4335]">o</span>
-                  <span className="text-[#FBBC05]">o</span>
-                  <span className="text-[#4285F4]">g</span>
-                  <span className="text-[#34A853]">l</span>
-                  <span className="text-[#EA4335]">e</span>
-                  <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider ml-2 bg-[#303134] px-1.5 py-0.5 rounded border border-white/5">
-                    Live Engine
-                  </span>
-                </div>
-                <span className="truncate text-sm text-slate-300 font-medium hidden sm:inline border-l border-white/10 pl-4">
-                  Query: &quot;{query}&quot;
-                </span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href={`https://www.google.com/search?q=${encodeURIComponent(query)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-[#4AA6A8] transition hover:bg-white/10"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Google Tab
-                </a>
-                <button
-                  onClick={() => setShowGoogleOverlay(false)}
-                  aria-label="Close search"
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-[#E8E8E5] transition"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
 
-            {/* Google Proxy Iframe container */}
-            <div className="flex-1 bg-white relative">
-              <iframe
-                src={`/api/google?q=${encodeURIComponent(query)}`}
-                className="w-full h-full border-0 bg-white"
-                title="Google Search Engine"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
        {/* Web Search Result Iframe Overlay (Glass Lightbox) */}
        <AnimatePresence>

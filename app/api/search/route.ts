@@ -119,31 +119,35 @@ export async function GET(req: Request) {
         {
           title: 'Basic CS & Programming Notes (ESCS 201)',
           link: 'https://cnotesbycsrijeet.vercel.app/',
-          keywords: ['c', 'programming', 'code', 'loops', 'pointers', 'arrays', 'recursion', 'structure', 'function', 'syntax'],
-          snippet: 'Access C programming lecture notes, arrays, loops, functions, algorithms, and compiler guides.'
+          keywords: ['c', 'programming', 'code', 'loops', 'pointers', 'arrays', 'recursion', 'structure', 'function', 'syntax', 'sort', 'sorting', 'merge', 'search', 'searching', 'stack', 'queue'],
+          snippet: 'Access C programming lecture notes, arrays, loops, functions, merge/bubble sort algorithms, and compiler guides.'
         },
         {
           title: 'Chemistry-I Notes (BSCH 201)',
           link: 'https://chem-notes-nhm8.vercel.app/',
-          keywords: ['chemistry', 'molecular', 'kinetics', 'spectroscopy', 'thermodynamics', 'bonding', 'orbitals', 'reaction'],
+          keywords: ['chemistry', 'molecular', 'kinetics', 'spectroscopy', 'thermodynamics', 'bonding', 'orbitals', 'reaction', 'ph', 'acid', 'base'],
           snippet: 'Access Chemistry lecture material, molecular orbitals, reaction kinetics, and spectroscopic theory.'
         },
         {
           title: 'Chemistry Laboratory Manuals (BSCH 291)',
           link: 'https://pracchem.vercel.app/',
-          keywords: ['lab', 'practical', 'experiment', 'titration', 'observation', 'viva', 'manual', 'burette', 'acid', 'base'],
-          snippet: 'Access practical titration observation sheets, lab guides, standard calculations, and viva questions.'
+          keywords: ['lab', 'practical', 'experiment', 'titration', 'observation', 'viva', 'manual', 'burette', 'alkalinity', 'hardness'],
+          snippet: 'Access practical titration observation sheets, lab guides, water hardness calculations, and viva questions.'
         },
         {
           title: 'Mathematics-II Solved Tutorials (BSM 201)',
           link: 'https://mathsnotesbysrijeet.vercel.app/',
-          keywords: ['maths', 'mathematics', 'differential', 'equations', 'linear algebra', 'matrix', 'calculus', 'eigenvalue', 'vector'],
+          keywords: ['maths', 'mathematics', 'differential', 'equations', 'linear algebra', 'matrix', 'calculus', 'eigenvalue', 'vector', 'rank', 'determinant'],
           snippet: 'Access solved math tutorials, eigenvalues, linear algebra matrix solvers, and differential equations notes.'
         }
       ];
 
+      const queryWords = q.split(/\s+/).filter(w => w.length > 1);
       for (const info of subjectsInfo) {
-        if (info.keywords.some(k => q.includes(k)) || info.title.toLowerCase().includes(q)) {
+        const matchesKeyword = info.keywords.some(k => 
+          q.includes(k) || queryWords.some(word => k.includes(word))
+        );
+        if (matchesKeyword || info.title.toLowerCase().includes(q)) {
           searchResults.push({
             title: info.title,
             link: info.link,
@@ -153,38 +157,48 @@ export async function GET(req: Request) {
       }
     }
 
-    // 3. Fetch Gemini AI Overview
+    // 3. Fetch Gemini AI Overview (Supports multi-key fallbacks)
     let aiOverview = '';
-    const geminiKey = process.env.GEMINI_API_KEY;
+    const geminiKeys = [
+      process.env.GEMINI_API_KEY,
+      process.env.GEMINI_API_KEY_1,
+      process.env.GEMINI_API_KEY_2
+    ].filter(Boolean) as string[];
 
-    if (geminiKey) {
-      try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are Google Gemini AI integrated into a Notes Hub website. Provide a clean, direct, and highly helpful AI Overview/Summary (maximum 3-4 bullet points or a short paragraph) in HTML format for the user's query: "${query}". Keep it relevant to engineering students if possible. Respond in clean HTML with bullet points (<ul> and <li>) and bold tags (<strong>). Do NOT wrap in markdown blocks like \`\`\`html.`
-                  }
-                ]
-              }
-            ]
-          })
-        });
+    if (geminiKeys.length > 0) {
+      for (const key of geminiKeys) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+          const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `You are Google Gemini AI integrated into a Notes Hub website. Provide a clean, direct, and highly helpful AI Overview/Summary (maximum 3-4 bullet points or a short paragraph) in HTML format for the user's query: "${query}". Keep it relevant to engineering students if possible. Respond in clean HTML with bullet points (<ul> and <li>) and bold tags (<strong>). Do NOT wrap in markdown blocks like \`\`\`html.`
+                    }
+                  ]
+                }
+              ]
+            })
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            aiOverview = text.trim();
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              aiOverview = text.trim();
+              console.log(`[Gemini Search API] Successfully fetched overview using API key: ...${key.slice(-4)}`);
+              break; // Success! Exit the fallback loop
+            }
+          } else {
+            console.warn(`[Gemini Search API] API key ending in ...${key.slice(-4)} returned status ${response.status}. Trying next key...`);
           }
+        } catch (err) {
+          console.error(`[Gemini Search API] Error with API key ending in ...${key.slice(-4)}:`, err);
         }
-      } catch (err) {
-        console.error('[Gemini Search Error]:', err);
       }
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, GraduationCap, Megaphone, Search, SearchX, X } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Search, SearchX, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AuthModal } from '@/components/AuthModal';
@@ -10,6 +10,7 @@ import { ProfileModal } from '@/components/ProfileModal';
 import { SessionCard } from '@/components/SessionCard';
 import { SubjectCarousel } from '@/components/SubjectCarousel';
 import { UserMenu } from '@/components/UserMenu';
+import { NoticeDropdown } from '@/components/NoticeDropdown';
 import { SUBJECTS, filterSubjects, type Subject } from '@/lib/subjects';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { useAuth } from '@/lib/useAuth';
@@ -24,7 +25,7 @@ export function HubClient({ authError }: { authError: string | null }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [lockedSubject, setLockedSubject] = useState<Subject | null>(null);
   const [errorDismissed, setErrorDismissed] = useState(false);
-  const [latestNotice, setLatestNotice] = useState<{ title: string; published_at: string; link: string | null } | null>(null);
+  const [notices, setNotices] = useState<any[]>([]);
 
   const results = useMemo(() => filterSubjects(SUBJECTS, query), [query]);
 
@@ -46,7 +47,7 @@ export function HubClient({ authError }: { authError: string | null }) {
     }
   }, [session]);
 
-  // Fetch latest notice from database
+  // Fetch recent notices from database
   useEffect(() => {
     if (!supabase) return;
     const fetchNotices = async () => {
@@ -55,10 +56,9 @@ export function HubClient({ authError }: { authError: string | null }) {
           .from('makaut_notices')
           .select('*')
           .order('published_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
         if (data) {
-          setLatestNotice(data);
+          setNotices(data);
         }
       } catch (err) {
         console.error('[notices] Error fetching MAKAUT notices:', err);
@@ -92,12 +92,6 @@ export function HubClient({ authError }: { authError: string | null }) {
     };
   }, [supabase, user]);
 
-  const activeNotice = latestNotice || {
-    title: "New Notice From Makaut - Semester 2 Exam Form Fill-up & Routine Published",
-    published_at: new Date().toISOString(),
-    link: "https://makautexams.net"
-  };
-
   function openAuth(subject?: Subject) {
     setLockedSubject(subject ?? null);
     setModalOpen(true);
@@ -118,32 +112,8 @@ export function HubClient({ authError }: { authError: string | null }) {
       <BackgroundMesh />
 
       <div className="mx-auto w-full max-w-6xl px-5 pb-20 pt-6 sm:px-8 sm:pt-8">
-        {/* MAKAUT Notices Banner */}
-        {activeNotice && (
-          <div className="mb-4 overflow-hidden rounded-xl border border-amber-500/25 bg-amber-500/[0.04] px-4 py-2 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-amber-200/90 shadow-sm relative">
-            <div className="absolute inset-y-0 left-0 w-1 bg-amber-500" />
-            <div className="flex items-center gap-2">
-              <Megaphone className="h-4 w-4 text-amber-400 shrink-0" />
-              <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px]">MAKAUT NOTICE:</span>
-              <span className="font-medium truncate">{activeNotice.title}</span>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="text-[10px] text-slate-500 font-mono">
-                {new Date(activeNotice.published_at).toLocaleString()}
-              </span>
-              {activeNotice.link && (
-                <a
-                  href={activeNotice.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-amber-400 underline hover:text-amber-300"
-                >
-                  View Details
-                </a>
-              )}
-            </div>
-          </div>
-        )}
+        {/* MAKAUT Notices Carousel Component */}
+        <NoticeDropdown notices={notices} />
 
         {/* ---------------------------------------------------------------
          * Top bar: brand · search · auth control

@@ -75,6 +75,18 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
   const [expandedNotice, setExpandedNotice] = useState<Notice | null>(null);
   const [iframeLoading, setIframeLoading] = useState(true);
 
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // Fallback default notices if none exist in the database yet
   const displayNotices = notices.length > 0 ? notices : [
     {
@@ -260,9 +272,12 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -8, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="text-xs sm:text-sm font-medium text-slate-300 truncate pr-4"
+              className="text-xs sm:text-sm font-medium text-slate-300 pr-4 flex items-center gap-1.5 overflow-hidden"
             >
-              {activeCollapsedNotice.title}
+              <span className="text-[#4AA6A8] font-mono text-[10px] sm:text-xs font-bold shrink-0 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                {formatDate(activeCollapsedNotice.published_at)}
+              </span>
+              <span className="truncate">{activeCollapsedNotice.title}</span>
             </motion.span>
           </AnimatePresence>
         </div>
@@ -438,16 +453,16 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 bg-black/30 backdrop-blur-md"
             onClick={() => setExpandedNotice(null)}
           >
-            {/* Modal Body Container */}
+            {/* Modal Body Container: Compact sizing & Glassy background */}
             <motion.div
-              initial={{ scale: 0.95, y: 15 }}
+              initial={{ scale: 0.96, y: 10 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="w-full max-w-5xl bg-[#0D0F10]/95 border border-[#4AA6A8]/20 rounded-2xl p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden"
+              exit={{ scale: 0.96, y: 10 }}
+              transition={{ type: "spring", damping: 28, stiffness: 240 }}
+              className="w-full max-w-3xl bg-[#0D0F10]/40 border border-white/10 rounded-2xl p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden backdrop-blur-xl"
               onClick={(e) => e.stopPropagation()} // Stop propagation to prevent closing
             >
               
@@ -487,7 +502,7 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
               </div>
 
               {/* Large Zoomed PDF Viewer with Transparent Surrounding */}
-              <div className="relative w-full h-[65vh] sm:h-[72vh] rounded-xl border border-white/10 bg-black/40 overflow-hidden flex items-center justify-center">
+              <div className="relative w-full h-[50vh] sm:h-[55vh] rounded-xl border border-white/10 bg-black/25 overflow-hidden flex items-center justify-center">
                 {iframeLoading && (
                   <div className="absolute inset-0 bg-[#0D0F10]/80 flex flex-col items-center justify-center gap-3 z-10">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#4AA6A8]"></div>

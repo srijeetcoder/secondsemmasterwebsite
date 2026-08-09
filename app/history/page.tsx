@@ -232,6 +232,20 @@ export default function HistoryPage() {
             ))}
           </div>
         )}
+
+        <footer className="mt-12 text-center">
+          <p className="text-xs text-slate-400 flex items-center justify-center gap-1 font-mono">
+            Made with <span className="text-rose-500">❤️</span> by{' '}
+            <a
+              href="https://github.com/srijeetcoder"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-slate-300 hover:text-cyan-400 underline underline-offset-4 transition"
+            >
+              srijeetcoder
+            </a>
+          </p>
+        </footer>
       </div>
 
       <AuthModal

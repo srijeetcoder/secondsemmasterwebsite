@@ -180,76 +180,80 @@ export function HubClient({ authError }: { authError: string | null }) {
             </span>
           </div>
 
-          <div className="relative flex-1 sm:mx-2">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setDropdownOpen(true);
-              }}
-              onFocus={() => setDropdownOpen(true)}
-              onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
-              placeholder="Search by subject, course code, or topic…"
-              aria-label="Search subjects"
-              className="search-input w-full rounded-xl py-2.5 pl-10 pr-9 text-sm focus:outline-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query && (
-              <button
-                onClick={() => {
-                  setQuery('');
-                  setDropdownOpen(false);
+          {session ? (
+            <div className="relative flex-1 sm:mx-2">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setDropdownOpen(true);
                 }}
-                aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694]"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
+                onFocus={() => setDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
+                placeholder="Search by subject, course code, or topic…"
+                aria-label="Search subjects"
+                className="search-input w-full rounded-xl py-2.5 pl-10 pr-9 text-sm focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
+                <button
+                  onClick={() => {
+                    setQuery('');
+                    setDropdownOpen(false);
+                  }}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
 
-            {/* Search Autocomplete Recommendations Dropdown */}
-            {dropdownOpen && recommendations.length > 0 && (
-              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-xl border border-white/10 bg-[#0D0F10]/95 backdrop-blur-xl p-1.5 shadow-2xl max-h-[320px] overflow-y-auto flex flex-col gap-0.5">
-                {recommendations.map((item, idx) => (
-                  <a
-                    key={idx}
-                    href={item.url}
-                    target={item.url.startsWith('http') ? '_blank' : undefined}
-                    rel={item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    onClick={() => setDropdownOpen(false)}
-                    className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {item.type === 'subject' && <GraduationCap className="h-4 w-4 text-[#4AA6A8] shrink-0" />}
-                      {item.type === 'notice' && <FileText className="h-4 w-4 text-[#A58A55] shrink-0" />}
-                      {item.type === 'topic' && <BookOpen className="h-4 w-4 text-[#827A9B] shrink-0" />}
-                      
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-semibold text-slate-200 truncate group-hover:text-[#4AA6A8] transition">
-                          {item.label}
-                        </span>
-                        {item.snippet && (
-                          <span className="text-[10px] text-slate-400 truncate mt-0.5 leading-none">
-                            {item.snippet}
+              {/* Search Autocomplete Recommendations Dropdown */}
+              {dropdownOpen && recommendations.length > 0 && (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-xl border border-white/10 bg-[#0D0F10]/95 backdrop-blur-xl p-1.5 shadow-2xl max-h-[320px] overflow-y-auto flex flex-col gap-0.5">
+                  {recommendations.map((item, idx) => (
+                    <a
+                      key={idx}
+                      href={item.url}
+                      target={item.url.startsWith('http') ? '_blank' : undefined}
+                      rel={item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      onClick={() => setDropdownOpen(false)}
+                      className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {item.type === 'subject' && <GraduationCap className="h-4 w-4 text-[#4AA6A8] shrink-0" />}
+                        {item.type === 'notice' && <FileText className="h-4 w-4 text-[#A58A55] shrink-0" />}
+                        {item.type === 'topic' && <BookOpen className="h-4 w-4 text-[#827A9B] shrink-0" />}
+                        
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-semibold text-slate-200 truncate group-hover:text-[#4AA6A8] transition">
+                            {item.label}
                           </span>
+                          {item.snippet && (
+                            <span className="text-[10px] text-slate-400 truncate mt-0.5 leading-none">
+                              {item.snippet}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <span className="text-[9px] font-mono text-slate-500 uppercase px-1 rounded bg-white/5 border border-white/5">
+                          {item.sublabel}
+                        </span>
+                        {item.url.startsWith('http') && (
+                          <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-[#4AA6A8] transition shrink-0" />
                         )}
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <span className="text-[9px] font-mono text-slate-500 uppercase px-1 rounded bg-white/5 border border-white/5">
-                        {item.sublabel}
-                      </span>
-                      {item.url.startsWith('http') && (
-                        <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-[#4AA6A8] transition shrink-0" />
-                      )}
-                    </div>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
 
           <div className="flex justify-end">
             <UserMenu

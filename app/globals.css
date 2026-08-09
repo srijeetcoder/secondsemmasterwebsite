@@ -12,14 +12,36 @@
   }
 
   body {
-    background-color: #090A0B;
-    color: #E8E8E5;
+    background-color: #071019;
+    color: #F5F7FA;
     background-attachment: fixed;
   }
 
+  /* Technical grids and cinematic effects */
+  .bg-grid-pattern {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  
+  .bg-grid-pattern-light {
+    background-image: linear-gradient(rgba(15, 23, 42, 0.02) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  @keyframes slow-pulse {
+    0%, 100% { opacity: 0.15; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(1.1); }
+  }
+
+  .animate-slow-pulse {
+    animation: slow-pulse 12s ease-in-out infinite;
+  }
+
   ::selection {
-    background: rgba(146, 150, 148, 0.2);
-    color: #E8E8E5;
+    background: rgba(6, 182, 212, 0.2);
+    color: #F5F7FA;
   }
 
   /* Subtle scrollbar that does not fight the dark theme */

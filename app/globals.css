@@ -12,7 +12,7 @@
   }
 
   body {
-    background-color: #090A0B;
+    background-color: #080808;
     color: #E8E8E5;
     background-attachment: fixed;
   }
@@ -51,15 +51,32 @@
 @layer components {
   /* Core glassmorphism surface, reused by cards, the top bar and the modal. */
   .glass {
-    background-color: #111314;
-    border: 1px solid #202324;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    background: rgba(255, 255, 255, 0.035) !important;
+    backdrop-filter: blur(24px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    transition: border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  .glass:hover {
+    border-radius: 26px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   }
 
   .glass-strong {
-    background-color: #0D0F10;
-    border: 1px solid #242728;
-    box-shadow: 0 32px 70px rgba(0, 0, 0, 0.5);
+    background: rgba(20, 20, 20, 0.65) !important;
+    backdrop-filter: blur(28px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    transition: border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  .glass-strong:hover {
+    border-radius: 30px !important;
   }
 
   /* ---------------------------------------------------------------------
@@ -70,29 +87,28 @@
    * ------------------------------------------------------------------- */
   .note-card {
     @apply relative overflow-hidden rounded-2xl;
-    background-color: rgba(255, 255, 255, 0.015);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow:
       0 1px 0 0 rgba(255, 255, 255, 0.02) inset,
       0 18px 40px -22px rgba(0, 0, 0, 0.95);
+    border-radius: 16px;
     transition:
-      border-color 0.75s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.75s cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+      border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+      border-color 0.3s ease,
+      box-shadow 0.3s ease,
+      background-color 0.3s ease;
   }
 
   .note-card:hover {
-    background-color: rgba(255, 255, 255, 0.035);
-    border-color: rgba(255, 255, 255, 0.12);
+    border-radius: 30px !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
     box-shadow:
       0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
       0 20px 50px rgba(0, 0, 0, 0.4);
-    transition:
-      border-color 0.3s ease,
-      box-shadow 0.4s ease,
-      background-color 0.3s ease;
   }
 
   /* Cursor-following sheen */
@@ -217,26 +233,33 @@
 
   /* Navbar styling */
   .navbar {
-    background-color: #0C0D0E;
-    border: 1px solid #202223;
-    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    border-radius: 16px;
+    transition: border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .navbar:hover {
+    border-radius: 28px !important;
   }
 
   /* Search input styling */
   .search-input {
-    background-color: #111314;
-    border: 1px solid #252728;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
     color: #E5E5E1;
-    transition: all 0.22s ease;
+    border-radius: 10px;
+    transition: border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.22s, border-color 0.22s;
   }
   .search-input::placeholder {
     color: #626766;
   }
-  .search-input:focus {
-    border-color: #343738;
-    outline: 1px solid #626766;
-    background-color: #151718;
+  .search-input:focus, .search-input:hover {
+    border-radius: 18px !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.08) !important;
   }
 
   /* Supabase warning banner styling */
@@ -303,11 +326,16 @@
      does not blur 3D-composited siblings — a translucent center card would
      let the side cards' text read straight through it. */
   .note-card--active {
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
     box-shadow:
       0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
       0 20px 50px rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+    transition: border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.5s, background-color 0.5s;
+  }
+  .note-card--active:hover {
+    border-radius: 34px !important;
   }
 
   .note-card--active[data-subject="escs-201"] {

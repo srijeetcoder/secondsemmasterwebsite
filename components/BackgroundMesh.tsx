@@ -19,7 +19,7 @@ export function BackgroundMesh() {
       />
 
       {/* Vignette to keep the edges calm using our matte black background */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_40%,transparent_40%,#090A0B_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_40%,transparent_40%,#080808_100%)]" />
     </div>
   );
 }

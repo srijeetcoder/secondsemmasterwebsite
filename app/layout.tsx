@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 
 import './globals.css';
+import AIChatbox from '@/components/AIChatbox';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={jakarta.variable}>
       <body className="min-h-screen bg-[#0F172A] font-sans text-slate-200 antialiased">
         {children}
+        <AIChatbox />
       </body>
     </html>
   );

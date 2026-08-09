@@ -1,8 +1,9 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, LogIn, LogOut, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { ChevronDown, LogIn, LogOut, ShieldCheck, User as UserIcon, Clock } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import type { User } from '@supabase/supabase-js';
 
@@ -18,6 +19,7 @@ type Props = {
 
 /** Compact auth control for the top bar: avatar dropdown, or a Sign In button. */
 export function UserMenu({ user, loading, onSignIn, onSignOut, onOpenProfile }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -100,7 +102,19 @@ export function UserMenu({ user, loading, onSignIn, onSignOut, onOpenProfile }: 
               className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#929694] transition hover:bg-white/5 hover:text-slate-200"
             >
               <UserIcon className="h-4 w-4" />
-              View Profile & History
+              View Profile
+            </button>
+
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push('/history');
+              }}
+              role="menuitem"
+              className="mt-1 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#929694] transition hover:bg-white/5 hover:text-slate-200"
+            >
+              <Clock className="h-4 w-4" />
+              Study History Logs
             </button>
 
             <button

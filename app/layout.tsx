@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={jakarta.variable}>
-      <body className="min-h-screen bg-[#0F172A] font-sans text-slate-200 antialiased">
+      <body className="min-h-screen font-sans text-slate-200 antialiased">
         {children}
       </body>
     </html>

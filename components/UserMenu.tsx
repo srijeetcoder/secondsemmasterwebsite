@@ -59,7 +59,9 @@ export function UserMenu({ user, loading, onSignIn, onSignOut, onOpenProfile }: 
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.05] py-1.5 pl-1.5 pr-3 transition hover:border-white/20 hover:bg-white/[0.09]"
+        className={`flex items-center gap-2.5 border border-white/10 bg-white/[0.05] py-1.5 pl-1.5 pr-3 transition-all duration-300 hover:border-white/20 hover:bg-white/[0.09] ${
+          open ? 'rounded-full' : 'rounded-xl'
+        }`}
       >
         <UserAvatar user={user} size={30} />
         <span className="hidden max-w-[9rem] truncate text-sm font-medium text-slate-200 sm:block">

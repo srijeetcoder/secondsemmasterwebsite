@@ -3,18 +3,17 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
-  BookOpen,
-  Calendar,
+  Camera,
   CheckCircle2,
   GraduationCap,
-  History,
   Loader2,
   Save,
   Trash2,
+  Upload,
   User as UserIcon,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
@@ -123,19 +122,22 @@ function ProfilePanel({
   const [year, setYear] = useState('');
   const [semester, setSemester] = useState('');
 
-  const [history, setHistory] = useState<StudyLog[]>([]);
+  const [newAvatar, setNewAvatar] = useState<string | null | undefined>(undefined);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase || !user) return;
 
-    const loadProfileAndHistory = async () => {
+    const loadProfile = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // 1. Fetch Profile
+        // Fetch Profile
         const { data: profile, error: profileErr } = await supabase
           .from('profiles')
           .select('*')
@@ -156,19 +158,6 @@ function ProfilePanel({
           setFullName(user.user_metadata?.full_name || '');
           setEmail(user.email || '');
         }
-
-        // 2. Fetch Study History
-        const { data: historyData, error: historyErr } = await supabase
-          .from('study_history')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('timestamp', { ascending: false });
-
-        if (historyErr) {
-          console.error('[profile] Failed to load study history:', historyErr);
-        } else if (historyData) {
-          setHistory(historyData);
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load profile details.');
       } finally {
@@ -176,8 +165,63 @@ function ProfilePanel({
       }
     };
 
-    loadProfileAndHistory();
+    loadProfile();
   }, [supabase, user]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file.');
+      return;
+    }
+
+    setAvatarLoading(true);
+    setError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const size = 150; // 150x150 is optimal size for user avatars
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            setError('Failed to process image.');
+            setAvatarLoading(false);
+            return;
+          }
+
+          // Center crop to square aspect ratio
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setNewAvatar(dataUrl);
+        } catch (err) {
+          setError('Error processing image.');
+        } finally {
+          setAvatarLoading(false);
+        }
+      };
+      img.onerror = () => {
+        setError('Failed to load image.');
+        setAvatarLoading(false);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => {
+      setError('Failed to read file.');
+      setAvatarLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -188,6 +232,7 @@ function ProfilePanel({
     setNotice(null);
 
     try {
+      // 1. Update Profile in DB
       const { error: updateErr } = await supabase
         .from('profiles')
         .update({
@@ -200,6 +245,15 @@ function ProfilePanel({
         .eq('id', user.id);
 
       if (updateErr) throw updateErr;
+
+      // 2. Save Custom Profile Picture to User Metadata if changed
+      if (newAvatar !== undefined) {
+        const { error: authErr } = await supabase.auth.updateUser({
+          data: { avatar_url: newAvatar }
+        });
+        if (authErr) throw authErr;
+        setNewAvatar(undefined);
+      }
 
       setNotice('Profile updated successfully.');
       setTimeout(() => setNotice(null), 3000);
@@ -236,6 +290,15 @@ function ProfilePanel({
         <span className="mt-4 text-sm text-[#929694] font-medium tracking-wide">Loading Profile...</span>
       </div>
     );
+  }
+
+  const currentAvatarSrc = newAvatar !== undefined ? newAvatar : (user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null);
+  const initial = (fullName || displayName(user)).charAt(0).toUpperCase() || 'S';
+
+  function displayName(userObj: User | null): string {
+    if (!userObj) return 'Student';
+    const meta = userObj.user_metadata ?? {};
+    return (meta.full_name as string) || (meta.name as string) || userObj.email?.split('@')[0] || 'Student';
   }
 
   return (
@@ -283,38 +346,83 @@ function ProfilePanel({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Edit Profile Form */}
-          <div>
-            <h3 className="text-sm font-semibold tracking-tight text-white mb-4 flex items-center gap-1.5">
-              <span>Personal Details</span>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Profile Picture & Display Details */}
+          <div className="md:col-span-4 flex flex-col items-center text-center p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
+            <div className="relative group w-32 h-32 mb-4 shrink-0">
+              {currentAvatarSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentAvatarSrc}
+                  alt="Profile Avatar"
+                  className="w-full h-full rounded-full object-cover border-2 border-[#4AA6A8]/45 shadow-lg transition-transform group-hover:scale-[1.02]"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/85 to-blue-500/85 text-4xl font-semibold text-[#05121F] border-2 border-white/10 shadow-lg transition-transform group-hover:scale-[1.02]">
+                  {initial}
+                </div>
+              )}
+
+              {/* Hover overlay trigger */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarLoading}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white cursor-pointer border border-white/10"
+              >
+                <Camera className="h-6 w-6 mb-1 text-slate-200" />
+                <span className="text-[10px] font-medium tracking-wide text-slate-200">Change Photo</span>
+              </button>
+            </div>
+
+            {/* Upload Buttons */}
+            <div className="flex flex-col gap-2 w-full max-w-[180px]">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarLoading}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] py-1.5 px-3 text-xs font-semibold text-slate-200 transition hover:bg-white/5 hover:border-white/20 disabled:opacity-50"
+              >
+                <Upload className="h-3.5 w-3.5 text-[#4AA6A8]" />
+                Upload Image
+              </button>
+              
+              {currentAvatarSrc && (
+                <button
+                  type="button"
+                  onClick={() => setNewAvatar(null)}
+                  className="text-xs font-medium text-rose-450 hover:text-rose-400 transition py-0.5"
+                >
+                  Remove Image
+                </button>
+              )}
+            </div>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+
+            {/* Read-Only display info */}
+            <div className="mt-5 w-full border-t border-white/[0.05] pt-4 text-left">
+              <h4 className="text-[11px] font-medium text-[#929694] uppercase tracking-wider">Full Name</h4>
+              <p className="text-sm font-semibold text-slate-200 truncate mt-0.5 leading-snug">{fullName || 'Student'}</p>
+              
+              <h4 className="text-[11px] font-medium text-[#929694] uppercase tracking-wider mt-3.5">Email Address</h4>
+              <p className="text-sm font-medium text-slate-400 truncate mt-0.5 leading-snug">{email}</p>
+            </div>
+          </div>
+
+          {/* Right Column: Editable details */}
+          <div className="md:col-span-8 space-y-4">
+            <h3 className="text-sm font-semibold tracking-tight text-white mb-1">
+              Personal Details
             </h3>
 
             <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#929694]">
-                  Full Name (Read-only)
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={fullName}
-                  className="search-input w-full rounded-xl py-2.5 px-3 text-sm bg-white/[0.02] border border-white/5 text-slate-450 cursor-not-allowed opacity-60"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#929694]">
-                  Email address (Read-only)
-                </label>
-                <input
-                  type="email"
-                  disabled
-                  value={email}
-                  className="search-input w-full rounded-xl py-2.5 px-3 text-sm bg-white/[0.02] border border-white/5 text-slate-450 cursor-not-allowed opacity-60"
-                />
-              </div>
-
               <div>
                 <label htmlFor="prof-dob" className="mb-1.5 block text-xs font-medium text-[#929694]">
                   Date of Birth
@@ -382,65 +490,21 @@ function ProfilePanel({
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save Changes
-              </button>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save Changes
+                </button>
+              </div>
             </form>
-          </div>
-
-          {/* Study History Timeline */}
-          <div className="flex flex-col h-full min-h-[300px]">
-            <h3 className="text-sm font-semibold tracking-tight text-white mb-4 flex items-center gap-1.5">
-              <History className="h-4 w-4 text-[#4AA6A8]" />
-              <span>Recent Study Activity</span>
-            </h3>
-
-            <div className="flex-1 glass rounded-xl overflow-hidden flex flex-col p-4">
-              {history.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-                  <BookOpen className="h-8 w-8 text-slate-600 mb-2" />
-                  <p className="text-xs font-medium text-slate-400">No notes studied yet</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Open subject links on the hub to view notes and build your history log.</p>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto space-y-3.5 max-h-[360px] pr-1.5 custom-scrollbar">
-                  {history.map((log) => {
-                    const date = new Date(log.timestamp);
-                    return (
-                      <div key={log.id} className="relative pl-4 border-l border-white/10 group">
-                        <div className="absolute -left-1 top-1.5 h-2 w-2 rounded-full bg-[#4AA6A8] transition-transform group-hover:scale-125" />
-                        <div className="text-[13px] font-semibold text-slate-200">
-                          {log.topic_title ? (
-                            <>
-                              Studied <span className="text-[#4AA6A8]">{log.topic_title}</span>
-                              <span className="text-slate-500 text-xs font-normal block mt-0.5">
-                                in {log.subject_title}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              Visited <span className="text-slate-100">{log.subject_title}</span>
-                            </>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-500 font-mono mt-1">
-                          {date.toLocaleString()}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useReducedMotion, motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion, motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -87,6 +87,18 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
     }
   };
 
+  const formatShortDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = months[d.getMonth()];
+      const day = d.getDate();
+      return `${month} ${day}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // Fallback default notices if none exist in the database yet
   const displayNotices = notices.length > 0 ? notices : [
     {
@@ -153,12 +165,12 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
 
   // Auto rotation inside the carousel when expanded
   useEffect(() => {
-    if (reduced || count < 2 || !isOpen || hovered || focused || dragging || expandedNotice) return;
+    if (count < 2 || !isOpen || hovered || focused || dragging || expandedNotice) return;
     const t = setTimeout(() => setRawIndex((v) => ((v + 1) % count + count) % count), AUTO_ROTATE_MS);
     return () => {
       clearTimeout(t);
     };
-  }, [active, reduced, count, hovered, focused, dragging, isOpen, expandedNotice]);
+  }, [active, count, hovered, focused, dragging, isOpen, expandedNotice]);
 
   // Handle pointer swiping
   function onPointerDown(e: React.PointerEvent) {
@@ -251,9 +263,14 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
   return (
     <div className="w-full">
       {/* Collapsed Ticker Bar */}
-      <div 
+      <motion.div
+        initial={{ y: -24, opacity: 0, scale: 0.92 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.008 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 14, mass: 0.8 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="glass-weak border border-amber-500/10 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-amber-500/[0.03] hover:border-amber-500/20 transition-all duration-300 select-none"
+        className="glass-weak border border-amber-500/10 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-amber-500/[0.03] hover:border-amber-500/20 transition-colors duration-300 select-none"
       >
         <div className="flex items-center gap-2.5 overflow-hidden flex-1">
           <span className="flex h-2 w-2 relative">
@@ -268,10 +285,10 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
           <AnimatePresence mode="wait">
             <motion.span 
               key={currentCollapsedIndex}
-              initial={{ y: 8, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -8, opacity: 0 }}
-              transition={{ duration: 0.25 }}
+              initial={{ y: 14, opacity: 0, scale: 0.88 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -14, opacity: 0, scale: 0.88 }}
+              transition={{ type: 'spring', stiffness: 480, damping: 18, mass: 0.6 }}
               className="text-xs sm:text-sm font-medium text-slate-300 pr-4 flex items-center gap-1.5 overflow-hidden"
             >
               <span className="text-[#4AA6A8] font-mono text-[10px] sm:text-xs font-bold shrink-0 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
@@ -284,25 +301,32 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
 
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline text-[10px] font-mono text-slate-500">
-            {!isOpen && new Date(activeCollapsedNotice.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            {!isOpen && formatShortDate(activeCollapsedNotice.published_at)}
           </span>
-          <button 
+          <motion.button 
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 14, mass: 0.8 }}
             className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 text-amber-400 transition hover:bg-amber-500/25"
             aria-label={isOpen ? "Collapse notices" : "Expand notices"}
           >
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+            <ChevronDown className="h-4 w-4" />
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Expanded Coverflow Carousel Container */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ height: 0, opacity: 0, y: -12, scale: 0.97 }}
+            animate={{ height: 'auto', opacity: 1, y: 0, scale: 1 }}
+            exit={{ height: 0, opacity: 0, y: -12, scale: 0.97 }}
+            transition={{
+              type: 'spring',
+              stiffness: 280,
+              damping: 22,
+              mass: 0.8
+            }}
             className="overflow-hidden"
           >
             <div 
@@ -351,49 +375,14 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
                         style={slotStyle(rel, reduced)}
                         aria-hidden={isHidden || undefined}
                       >
-                        <div
-                          className="carousel-tilt h-full cursor-pointer"
+                        <NoticeCarouselCard
+                          notice={notice}
+                          isActive={isActive}
+                          isHidden={isHidden}
+                          onClick={() => handleCardClick(i)}
                           onMouseMove={(e) => onSlotMouseMove(e, isActive)}
                           onMouseLeave={onSlotMouseLeave}
-                          onClick={() => handleCardClick(i)}
-                        >
-                          {/* Mini Glassy PDF Card */}
-                          <div className={`relative h-full w-full rounded-2xl border bg-white/[0.01] shadow-xl overflow-hidden transition-all duration-300 flex flex-col justify-center items-center ${
-                            isActive 
-                              ? 'border-white/20 hover:border-[#4AA6A8]/40 shadow-[0_0_25px_rgba(74,166,168,0.06)]' 
-                              : 'border-white/5 opacity-40 hover:opacity-60'
-                          }`}>
-                            
-                            {/* PDF Preview Frame (Pointer events disabled in slider to allow dragging) */}
-                            {notice.link ? (
-                              <div className="w-full h-full pointer-events-none select-none z-0 rounded-2xl overflow-hidden">
-                                <iframe
-                                  src={`${notice.link}#toolbar=0&navpanes=0&scrollbar=0`}
-                                  className="w-full h-full border-0 scale-[1.01]"
-                                  title={notice.title}
-                                  loading="lazy"
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center justify-center gap-3 p-6 text-slate-500">
-                                <FileText className="h-10 w-10 text-white/25" />
-                                <span className="text-xs">No PDF link available</span>
-                              </div>
-                            )}
-
-                            {/* Active Card Click-to-Expand Indicator Overlay */}
-                            {isActive && (
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-5 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
-                                <span className="text-[10px] font-bold text-[#4AA6A8] tracking-widest uppercase mb-0.5">
-                                  Click to Open Notice
-                                </span>
-                                <h5 className="text-xs font-semibold text-white truncate max-w-full">
-                                  {notice.title}
-                                </h5>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        />
                       </div>
                     );
                   })}
@@ -527,3 +516,89 @@ export function NoticeDropdown({ notices }: { notices: Notice[] }) {
     </div>
   );
 }
+
+interface NoticeCarouselCardProps {
+  notice: Notice;
+  isActive: boolean;
+  isHidden: boolean;
+  onClick: () => void;
+  onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => void;
+}
+
+function NoticeCarouselCard({
+  notice,
+  isActive,
+  isHidden,
+  onClick,
+  onMouseMove,
+  onMouseLeave,
+}: NoticeCarouselCardProps) {
+  const controls = useAnimation();
+  const wasActive = useRef(false);
+
+  useEffect(() => {
+    if (isActive && !wasActive.current) {
+      controls.set({ scale: 0.93, y: 12 });
+      controls.start({
+        scale: 1,
+        y: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 280,
+          damping: 22,
+          mass: 0.8,
+        },
+      });
+    }
+    wasActive.current = isActive;
+  }, [isActive, controls]);
+
+  return (
+    <motion.div animate={controls} className="h-full w-full">
+      <div
+        className="carousel-tilt h-full cursor-pointer"
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+        onClick={onClick}
+      >
+        {/* Mini Glassy PDF Card */}
+        <div className={`relative h-full w-full rounded-2xl border bg-white/[0.01] shadow-xl overflow-hidden transition-all duration-300 flex flex-col justify-center items-center ${
+          isActive 
+            ? 'border-white/20 hover:border-[#4AA6A8]/40 shadow-[0_0_25px_rgba(74,166,168,0.06)]' 
+            : 'border-white/5 opacity-40 hover:opacity-60'
+        }`}>
+          {/* PDF Preview Frame (Pointer events disabled in slider to allow dragging) */}
+          {notice.link ? (
+            <div className="w-full h-full pointer-events-none select-none z-0 rounded-2xl overflow-hidden">
+              <iframe
+                src={`${notice.link}#toolbar=0&navpanes=0&scrollbar=0`}
+                className="w-full h-full border-0 scale-[1.01]"
+                title={notice.title}
+                loading="lazy"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 p-6 text-slate-500">
+              <FileText className="h-10 w-10 text-white/25" />
+              <span className="text-xs">No PDF link available</span>
+            </div>
+          )}
+
+          {/* Active Card Click-to-Expand Indicator Overlay */}
+          {isActive && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-5 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
+              <span className="text-[10px] font-bold text-[#4AA6A8] tracking-widest uppercase mb-0.5">
+                Click to Open Notice
+              </span>
+              <h5 className="text-xs font-semibold text-white truncate max-w-full">
+                {notice.title}
+              </h5>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+

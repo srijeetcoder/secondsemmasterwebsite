@@ -10,12 +10,16 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Semester 2 Notes Hub',
+  title: 'MAKAUT BUSTERS',
   description: 'One portal for all your semester resources, powered by single sign-on.',
 };
 
 export const viewport: Viewport = {
   themeColor: '#0F172A',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

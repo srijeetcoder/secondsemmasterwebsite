@@ -4,12 +4,15 @@ import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * OAuth / magic-link landing route.
+ * OAuth / magic-link / password-reset landing route.
  *
- * Supabase redirects here with `?code=...` after Google sign-in or after the
- * user clicks a magic link. `exchangeCodeForSession` completes the PKCE flow
- * and writes the session cookies, so by the time we redirect back to `/`
- * the hub already knows who the user is.
+ * Supabase redirects here with `?code=...` after:
+ *   - Google sign-in
+ *   - Email confirmation magic link
+ *   - Password reset link  ← `type=recovery` is present in this case
+ *
+ * For recovery links we forward to /auth/reset-password so the user can
+ * set a new password on a dedicated page after the session is exchanged.
  *
  * Register this exact URL in Supabase:
  *   Authentication -> URL Configuration -> Redirect URLs
@@ -19,6 +22,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const type = searchParams.get('type'); // "recovery" for password-reset links
   const next = searchParams.get('next') ?? '/';
 
   // Supabase can also report failures straight on the redirect.
@@ -34,6 +38,14 @@ export async function GET(request: Request) {
   }
 
   if (code) {
+    // For password-reset flows, forward the raw code to the reset page so it
+    // can exchange it client-side and immediately show the new-password form.
+    if (type === 'recovery') {
+      return NextResponse.redirect(
+        `${origin}/auth/reset-password?code=${encodeURIComponent(code)}`,
+      );
+    }
+
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 

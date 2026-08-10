@@ -9,12 +9,17 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
-    background-color: #080808;
+    background-color: transparent;
     color: #E8E8E5;
     background-attachment: fixed;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
@@ -236,12 +241,16 @@
     background-color: rgba(255, 255, 255, 0.03) !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
     backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
     border-radius: 24px;
     transition: border-radius 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
-  .navbar:hover {
-    border-radius: 36px !important;
+  /* Only morph border-radius on hover for pointer devices (avoids jank on touch) */
+  @media (hover: hover) {
+    .navbar:hover {
+      border-radius: 36px !important;
+    }
   }
 
   /* Search input styling */
@@ -393,6 +402,7 @@
   }
 }
 
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -403,5 +413,56 @@
   }
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* ── Responsive / device compatibility ─────────────────────────────────── */
+
+/* Safe-area insets for notched/dynamic island devices */
+@supports (padding: env(safe-area-inset-left)) {
+  .navbar-safe {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+}
+
+/* Minimum touch target for interactive elements on mobile */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Exception: inline icon buttons inside dense layouts */
+  .carousel-nav {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Flatten heavy 3D transforms on low-end / very small screens */
+@media (max-width: 360px) {
+  .carousel-slot {
+    --side-x: 80%;
+    --side-rot: 4deg;
+    --side-scale: 0.92;
+    --side-z: -60px;
+  }
+  .carousel-stage {
+    perspective: 800px;
+  }
+}
+
+/* Disable fixed background-attachment on mobile (huge perf win) */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
+/* High-contrast / forced-colors mode */
+@media (forced-colors: active) {
+  .glass, .glass-strong, .note-card, .navbar {
+    border: 2px solid ButtonText !important;
+    background: Canvas !important;
   }
 }

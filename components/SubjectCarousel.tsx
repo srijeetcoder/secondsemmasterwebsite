@@ -1,6 +1,6 @@
 'use client';
 
-import { useReducedMotion } from 'framer-motion';
+import { motion, useAnimation, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ChevronLeft, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -109,10 +109,10 @@ export function SubjectCarousel({ subjects, session, onLocked }: Props) {
   // Auto rotation: one timeout per active card, so any manual navigation
   // (buttons, swipe, dots, keys) naturally restarts the wait.
   useEffect(() => {
-    if (reduced || count < 2 || hovered || focused || dragging) return;
+    if (count < 2 || hovered || focused || dragging) return;
     const t = setTimeout(() => setRawIndex((v) => ((v + 1) % count + count) % count), AUTO_ROTATE_MS);
     return () => clearTimeout(t);
-  }, [active, reduced, count, hovered, focused, dragging]);
+  }, [active, count, hovered, focused, dragging]);
 
   // --- Pointer drag / touch swipe --------------------------------------
   function onPointerDown(e: React.PointerEvent) {
@@ -361,6 +361,29 @@ function CarouselCard({
   const href = buildHandoffUrl(subject.url, session);
   const hostname = new URL(subject.url).hostname;
 
+  // Spring bounce when this card becomes the active (centered) card.
+  // controls.set() snaps to start state instantly; controls.start() springs
+  // to rest — the natural spring overshoot gives the bouncy feel.
+  const controls = useAnimation();
+  const wasActive = useRef(false);
+  useEffect(() => {
+    if (isActive && !wasActive.current) {
+      // Snap to compressed/offset start state, then spring to rest
+      controls.set({ scale: 0.93, y: 12 });
+      controls.start({
+        scale: 1,
+        y: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 280,
+          damping: 22,
+          mass: 0.8,
+        },
+      });
+    }
+    wasActive.current = isActive;
+  }, [isActive, controls]);
+
   const body = (
     <>
       <div className="note-card__spotlight pointer-events-none absolute inset-0" aria-hidden />
@@ -419,10 +442,17 @@ function CarouselCard({
   const style = { '--accent': subject.accent } as React.CSSProperties;
   const tabIndex = isHidden ? -1 : 0;
 
+  // Shared spring wrapper — bounces in when card becomes active, no hover effect
+  const wrapper = (children: React.ReactNode) => (
+    <motion.div animate={controls} className="h-full w-full">
+      {children}
+    </motion.div>
+  );
+
   if (!isActive) {
     // Side card: clicking it (without dragging) brings it to the center.
-    return (
-      <button
+    return wrapper(
+      <motion.button
         type="button"
         className={className}
         style={style}
@@ -435,15 +465,15 @@ function CarouselCard({
         aria-label={`Show ${subject.code} — ${subject.title}`}
       >
         {body}
-      </button>
+      </motion.button>
     );
   }
 
   if (isAuthed) {
     // Centered + signed in: a plain link whose href already carries the
     // session, so middle-click and "open in new tab" keep working.
-    return (
-      <a
+    return wrapper(
+      <motion.a
         className={className}
         style={style}
         href={href}
@@ -462,12 +492,12 @@ function CarouselCard({
         }}
       >
         {body}
-      </a>
+      </motion.a>
     );
   }
 
-  return (
-    <button
+  return wrapper(
+    <motion.button
       type="button"
       className={className}
       style={style}
@@ -479,6 +509,6 @@ function CarouselCard({
       aria-label={`${subject.code} ${subject.title} — sign in required`}
     >
       {body}
-    </button>
+    </motion.button>
   );
 }

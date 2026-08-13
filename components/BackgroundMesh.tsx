@@ -1,21 +1,8 @@
 'use client';
-import { motion } from 'framer-motion';
 
-/**
- * Decorative background — spectrum colour-cycling wave layers.
- *
- * Visual design:
- *  • ALL four layers are the SAME colour family at any moment.
- *  • Each layer has a different opacity, so the bottom of the page
- *    (where all four overlap) is the most intense, while the top
- *    (where only the deepest layer is visible) is the most subtle.
- *    → "decreasing intensity upward" effect.
- *  • Every ~10 s the colour holds, then spends ~10 s smoothly
- *    cross-fading to the next hue in the spectrum.
- *    (Achieved with easeInOut per segment on a 160 s total cycle.)
- *  • Layers still drift horizontally (alternating directions) and
- *    continuously morph their silhouette shapes.
- */
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { usePerformanceTier } from '@/lib/usePerformanceTier';
 
 /* ─── Seamlessly-tileable SVG paths (viewBox "0 0 4000 1200") ─────────────── */
 const L1 = [
@@ -43,25 +30,18 @@ const L4 = [
   'M 0 760 C 400 600 900 900 1400 780 C 1700 660 1900 730 2000 760 C 2400 600 2900 900 3400 780 C 3700 660 3900 730 4000 760 L 4000 1200 L 0 1200 Z',
 ];
 
-/* ─── Shared spectrum colour cycle ────────────────────────────────────────────
- * 8 colours × 20 s each (10 s hold + 10 s crossfade via easeInOut) = 160 s loop.
- * Every layer uses THIS same array so they are always in the same hue family.
- * Last entry repeats first for a seamless loop.
- * ──────────────────────────────────────────────────────────────────────────── */
 const SPECTRUM = [
-  '#5a0e0e', // red
-  '#0e0e58', // blue
-  '#0e520e', // green
-  '#524a0e', // yellow
-  '#380e52', // purple
-  '#52103c', // pink / magenta
-  '#522208', // orange
-  '#0e4448', // cyan / teal
-  '#5a0e0e', // back to red — seamless
+  '#5a0e0e',
+  '#0e0e58',
+  '#0e520e',
+  '#524a0e',
+  '#380e52',
+  '#52103c',
+  '#522208',
+  '#0e4448',
+  '#5a0e0e',
 ];
 
-// 160 s total, easeInOut per segment naturally creates:
-// slow departure (looks like "holding") → fast crossfade → slow arrival ("holding" again)
 const COLOR_TRANSITION = {
   duration: 160,
   repeat: Infinity,
@@ -70,6 +50,69 @@ const COLOR_TRANSITION = {
 };
 
 export function BackgroundMesh() {
+  const { tier, isLow, reducedMotion } = usePerformanceTier();
+  const [isVisible, setIsVisible] = useState(true);
+
+  // Pause animations when tab is backgrounded
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // 1. Low performance tier or reduced motion: lightweight static ambient gradient
+  if (isLow || reducedMotion || !isVisible) {
+    return (
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 25%, #0e4448 0%, #090B0C 70%)',
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 h-[18vh] bg-gradient-to-b from-black/60 to-transparent" />
+      </div>
+    );
+  }
+
+  // 2. Normal performance tier: 2 wave layers with CSS scroll, no JS path morphing
+  if (tier === 'normal') {
+    return (
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        style={{ backgroundColor: '#060606' }}
+      >
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes scroll-left {
+            0%   { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100vw, 0, 0); }
+          }
+          @keyframes scroll-right {
+            0%   { transform: translate3d(-100vw, 0, 0); }
+            100% { transform: translate3d(0, 0, 0); }
+          }
+          .wave-layer-1 { animation: scroll-left 90s linear infinite; }
+          .wave-layer-2 { animation: scroll-right 120s linear infinite; }
+        `}} />
+        <div className="absolute inset-0 w-[200vw] h-full wave-layer-1" style={{ opacity: 0.4 }}>
+          <svg width="100%" height="100%" viewBox="0 0 4000 1200" preserveAspectRatio="none">
+            <path d={L1[0]} fill="#0e4448" />
+          </svg>
+        </div>
+        <div className="absolute inset-0 w-[200vw] h-full wave-layer-2" style={{ opacity: 0.6 }}>
+          <svg width="100%" height="100%" viewBox="0 0 4000 1200" preserveAspectRatio="none">
+            <path d={L3[0]} fill="#380e52" />
+          </svg>
+        </div>
+        <div className="absolute inset-x-0 top-0 h-[18vh] bg-gradient-to-b from-black/60 to-transparent" />
+      </div>
+    );
+  }
+
+  // 3. High performance tier: Full 4-layer spectrum morphing wave mesh
   return (
     <div
       aria-hidden
@@ -91,13 +134,6 @@ export function BackgroundMesh() {
         .wave-layer-4 { animation: scroll-right 105s linear infinite; }
       `}} />
 
-      {/*
-        ── Four wave layers — all same colour, different opacity ──────────────
-        Opacity increases from layer 1 (top-most visible region, subtlest) to
-        layer 4 (bottom region, most intense) → "decreasing intensity upward".
-      */}
-
-      {/* Layer 1 — deepest, subtlest (opacity 0.30) */}
       <div className="absolute inset-0 w-[200vw] h-full wave-layer-1" style={{ opacity: 0.30 }}>
         <svg width="100%" height="100%" viewBox="0 0 4000 1200" preserveAspectRatio="none">
           <motion.path
@@ -110,7 +146,6 @@ export function BackgroundMesh() {
         </svg>
       </div>
 
-      {/* Layer 2 — opacity 0.50 */}
       <div className="absolute inset-0 w-[200vw] h-full wave-layer-2" style={{ opacity: 0.50 }}>
         <svg width="100%" height="100%" viewBox="0 0 4000 1200" preserveAspectRatio="none">
           <motion.path
@@ -123,7 +158,6 @@ export function BackgroundMesh() {
         </svg>
       </div>
 
-      {/* Layer 3 — opacity 0.68 */}
       <div className="absolute inset-0 w-[200vw] h-full wave-layer-3" style={{ opacity: 0.68 }}>
         <svg width="100%" height="100%" viewBox="0 0 4000 1200" preserveAspectRatio="none">
           <motion.path
@@ -136,7 +170,6 @@ export function BackgroundMesh() {
         </svg>
       </div>
 
-      {/* Layer 4 — shallowest, most intense (opacity 0.85) */}
       <div className="absolute inset-0 w-[200vw] h-full wave-layer-4" style={{ opacity: 0.85 }}>
         <svg width="100%" height="100%" viewBox="0 0 4000 1200" preserveAspectRatio="none">
           <motion.path
@@ -149,7 +182,6 @@ export function BackgroundMesh() {
         </svg>
       </div>
 
-      {/* Soft top-edge fade to keep the header area clean */}
       <div className="absolute inset-x-0 top-0 h-[18vh] bg-gradient-to-b from-black/60 to-transparent" />
     </div>
   );

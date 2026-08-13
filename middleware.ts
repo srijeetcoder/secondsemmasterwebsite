@@ -9,11 +9,8 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from '@/lib/sup
  * Without this, an expired access token would only be refreshed once the
  * browser JS loaded — which means a card click right after a cold page load
  * could hand a stale token to a child site.
- *
- * (This is the file formerly known as `middleware.ts`; Next 16 renamed the
- * convention to `proxy`.)
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   if (!isSupabaseConfigured) return response;

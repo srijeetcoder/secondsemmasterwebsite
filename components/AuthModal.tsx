@@ -233,7 +233,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
         onClose();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(sanitizeError(err, 'Something went wrong. Please try again.'));
     } finally {
       setBusy(null);
     }
@@ -262,7 +262,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       if (verifyError) throw verifyError;
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid or expired code. Please try again.');
+      setError(sanitizeError(err, 'Invalid or expired code. Please try again.'));
     } finally {
       setBusy(null);
     }
@@ -283,7 +283,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       setResendCooldown(60);
       setNotice('A new code has been sent to your email.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not resend code.');
+      setError(sanitizeError(err, 'Could not resend code.'));
     } finally {
       setBusy(null);
     }
@@ -303,16 +303,19 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
     setError(null);
 
     try {
+      // redirectTo must point to a URL already whitelisted in Supabase's
+      // Redirect URLs list. We use /auth/callback which handles ?type=recovery
+      // by forwarding to /auth/reset-password.
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo:
           typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/reset-password`
+            ? `${window.location.origin}/auth/callback`
             : undefined,
       });
       if (resetError) throw resetError;
       switchMode('forgot-sent');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send reset email.');
+      setError(sanitizeError(err, 'Could not send reset email. Please try again later.'));
     } finally {
       setBusy(null);
     }
@@ -826,6 +829,28 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       </div>
     </motion.div>
   );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Error message sanitizer                                                    */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Supabase sometimes surfaces raw HTTP status codes (e.g. "0", "422") as the
+ * error message. This helper converts those meaningless strings into the
+ * provided human-readable fallback.
+ */
+function sanitizeError(err: unknown, fallback: string): string {
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof (err as { message?: unknown })?.message === 'string'
+        ? String((err as { message: string }).message)
+        : '';
+
+  // Treat empty strings or pure-numeric strings as meaningless
+  if (!raw || /^\d+$/.test(raw.trim())) return fallback;
+  return raw;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */

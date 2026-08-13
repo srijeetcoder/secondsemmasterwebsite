@@ -1,5 +1,5 @@
 {
-  "name": "semester-2-notes-hub",
+  "name": "notes4btechcse",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --no-warnings scripts/handoff.test.mjs && node --experimental-strip-types --no-warnings scripts/subjects.test.mjs"
+    "test": "node --experimental-strip-types --no-warnings scripts/handoff.test.mjs && node --experimental-strip-types --no-warnings scripts/subjects.test.mjs",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

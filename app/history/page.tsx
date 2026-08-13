@@ -109,7 +109,7 @@ export default function HistoryPage() {
     <>
       <BackgroundMesh />
       
-      <div className="mx-auto w-full max-w-4xl px-5 pb-20 pt-6 sm:px-8 sm:pt-10 min-h-screen flex flex-col">
+      <div className="relative z-10 mx-auto w-full max-w-4xl px-5 pb-20 pt-6 sm:px-8 sm:pt-10 min-h-screen flex flex-col">
         {/* Header */}
         <header className="navbar flex items-center justify-between rounded-2xl px-5 py-3.5 mb-8">
           <div className="flex items-center gap-3">

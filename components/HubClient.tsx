@@ -270,19 +270,14 @@ export function HubClient({ authError }: { authError: string | null }) {
                     )}
                   </motion.div>
                 ) : (
-                  <motion.button
-                    key="search-icon-btn"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
+                    type="button"
                     onClick={() => setSearchExpanded(true)}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:text-white hover:border-[#4AA6A8]/40 transition-all shadow-md shrink-0 touch-manipulation"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:text-white hover:border-[#4AA6A8]/40 hover:bg-white/[0.08] transition shadow-md shrink-0 touch-manipulation"
                     title="Search subjects"
                   >
                     <Search className="h-4 w-4" />
-                  </motion.button>
+                  </button>
                 )}
               </AnimatePresence>
 

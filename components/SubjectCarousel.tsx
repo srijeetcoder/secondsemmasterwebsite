@@ -2,7 +2,7 @@
 
 import { motion, useAnimation, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ChevronLeft, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Session } from '@supabase/supabase-js';
 
@@ -342,6 +342,14 @@ type CardProps = {
   movedRef: React.MutableRefObject<boolean>;
 };
 
+function getHostname(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).hostname;
+  } catch {
+    return rawUrl;
+  }
+}
+
 /**
  * One carousel panel. The centered card behaves exactly like the old grid
  * card (session-carrying link when signed in, sign-in prompt when not);
@@ -359,7 +367,7 @@ function CarouselCard({
   const Icon = subject.icon;
   const isAuthed = Boolean(session);
   const href = buildHandoffUrl(subject.url, session);
-  const hostname = new URL(subject.url).hostname;
+  const hostname = useMemo(() => getHostname(subject.url), [subject.url]);
 
   // Spring bounce when this card becomes the active (centered) card.
   // controls.set() snaps to start state instantly; controls.start() springs

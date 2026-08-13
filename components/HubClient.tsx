@@ -121,12 +121,13 @@ export function HubClient({ authError }: { authError: string | null }) {
 
   // Fetch recent notices from our scraper API
   useEffect(() => {
+    let isMounted = true;
     const fetchNotices = async () => {
       try {
         const res = await fetch('/api/notices');
         if (!res.ok) throw new Error('Failed to fetch notices');
         const data = await res.json();
-        if (data && data.notices) {
+        if (isMounted && data && data.notices) {
           setNotices(data.notices);
         }
       } catch (err) {
@@ -134,6 +135,9 @@ export function HubClient({ authError }: { authError: string | null }) {
       }
     };
     fetchNotices();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Global logStudyHistory registry
@@ -227,36 +231,60 @@ export function HubClient({ authError }: { authError: string | null }) {
 
           {/* Search container */}
           {session ? (
-            <motion.div
-              layout
-              className="relative flex items-center min-w-0 flex-1 mx-1.5 sm:mx-2.5"
-            >
-              <div className="relative w-full">
-                <Search className="pointer-events-none absolute left-3 sm:left-3.5 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
-                  onFocus={() => setDropdownOpen(true)}
-                  onBlur={() => {
-                    setTimeout(() => {
-                      setDropdownOpen(false);
-                    }, 200);
-                  }}
-                  placeholder={isScrolled ? "Search…" : "Search subjects, topics…"}
-                  aria-label="Search subjects"
-                  className="search-input w-full rounded-xl py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5] transition focus:border-[#4AA6A8]/40 focus:bg-white/[0.06]"
-                />
-                {query && (
-                  <button
-                    onClick={() => { setQuery(''); setDropdownOpen(false); }}
-                    aria-label="Clear search"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation"
+            <div className="relative flex items-center min-w-0">
+              <AnimatePresence initial={false} mode="wait">
+                {(!isScrolled || searchExpanded) ? (
+                  <motion.div
+                    key="search-input-wrapper"
+                    initial={isScrolled ? { width: 36, opacity: 0 } : false}
+                    animate={{ width: isScrolled ? 'min(280px, calc(90vw - 100px))' : '100%', opacity: 1 }}
+                    exit={{ width: 36, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                    className="relative w-full flex-1"
                   >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                    <Search className="pointer-events-none absolute left-3 sm:left-3.5 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="search"
+                      value={query}
+                      autoFocus={isScrolled && searchExpanded}
+                      onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
+                      onFocus={() => setDropdownOpen(true)}
+                      onBlur={() => {
+                        setTimeout(() => {
+                          setDropdownOpen(false);
+                          if (!query && isScrolled) setSearchExpanded(false);
+                        }, 200);
+                      }}
+                      placeholder="Search subjects, topics…"
+                      aria-label="Search subjects"
+                      className="search-input w-full rounded-xl py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5] transition focus:border-[#4AA6A8]/40 focus:bg-white/[0.06]"
+                    />
+                    {query && (
+                      <button
+                        onClick={() => { setQuery(''); setDropdownOpen(false); if (isScrolled) setSearchExpanded(false); }}
+                        aria-label="Clear search"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="search-icon-btn"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSearchExpanded(true)}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:text-white hover:border-[#4AA6A8]/40 transition-all shadow-md shrink-0 touch-manipulation"
+                    title="Search subjects"
+                  >
+                    <Search className="h-4 w-4" />
+                  </motion.button>
                 )}
-              </div>
+              </AnimatePresence>
 
               {/* Autocomplete dropdown */}
               {dropdownOpen && recommendations.length > 0 && (
@@ -293,7 +321,7 @@ export function HubClient({ authError }: { authError: string | null }) {
                   ))}
                 </div>
               )}
-            </motion.div>
+            </div>
           ) : (
             <div className="flex-1" />
           )}

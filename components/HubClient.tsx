@@ -74,7 +74,7 @@ export function HubClient({ authError }: { authError: string | null }) {
           type: 'notice',
           label: notice.title,
           sublabel: 'Notice Board',
-          url: notice.url || 'https://www.makautexam.net/'
+          url: notice.link || notice.url || 'https://www.makautexam.net/'
         });
       }
     }
@@ -138,24 +138,26 @@ export function HubClient({ authError }: { authError: string | null }) {
 
   // Global logStudyHistory registry
   useEffect(() => {
-    if (!supabase || !user) return;
-    (window as any).logStudyHistory = async (subjectId: string, subjectTitle: string, url: string, topicTitle?: string) => {
-      try {
-        const { error } = await supabase
-          .from('study_history')
-          .insert({
-            user_id: user.id,
-            subject_id: subjectId,
-            subject_title: subjectTitle,
-            topic_title: topicTitle || null,
-            url: url,
-            timestamp: new Date().toISOString()
-          });
-        if (error) console.error('[history] Error logging study history:', error);
-      } catch (err) {
-        console.error('[history] Failed to log study history:', err);
-      }
-    };
+    if (typeof window !== 'undefined') {
+      (window as any).logStudyHistory = async (subjectId: string, subjectTitle: string, url: string, topicTitle?: string) => {
+        if (!supabase) return;
+        try {
+          const { error } = await supabase
+            .from('study_history')
+            .insert({
+              user_id: user?.id,
+              subject_id: subjectId,
+              subject_title: subjectTitle,
+              topic_title: topicTitle || null,
+              url: url,
+              timestamp: new Date().toISOString()
+            });
+          if (error) console.error('[history] Error logging study history:', error);
+        } catch (err) {
+          console.error('[history] Failed to log study history:', err);
+        }
+      };
+    }
     return () => {
       delete (window as any).logStudyHistory;
     };
@@ -182,37 +184,36 @@ export function HubClient({ authError }: { authError: string | null }) {
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 pt-5 sm:px-6 sm:pb-20 sm:pt-8 lg:px-8">
         {/* MAKAUT Notices Ticker */}
-        <div className="mb-4 sm:mb-5 inline-block max-w-full">
+        <div className="mb-4 sm:mb-5 w-full">
           <NoticeDropdown notices={notices} />
         </div>
-
-        {/* Animated spacer — height transitions smoothly so nothing jumps */}
+        {/* Spacer to prevent page jump when header docks fixed */}
         <motion.div
-          animate={{ height: isScrolled ? 68 : 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 34 }}
+          animate={{ height: isScrolled ? 64 : 0 }}
+          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
           className="overflow-hidden"
         />
 
         <motion.header
           layout
-          transition={{ type: 'spring', stiffness: 280, damping: 32 }}
-          className={`navbar z-50 flex items-center shadow-xl border border-white/[0.06] backdrop-blur-xl ${
+          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+          className={`navbar z-50 flex items-center shadow-2xl backdrop-blur-xl border transform-gpu ${
             isScrolled
-              ? 'fixed top-3 left-3 sm:top-4 sm:left-4 md:left-8 py-1.5 px-2.5 rounded-xl gap-2.5 w-fit bg-[#0D0F10]/92'
-              : 'relative w-full py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl justify-between gap-3 sm:gap-4 bg-[#0D0F10]/40'
+              ? 'fixed top-3 left-3 sm:top-4 sm:left-4 md:left-8 py-1.5 px-2.5 rounded-xl gap-2.5 bg-[#0D0F10]/95 border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.6)]'
+              : 'relative w-full py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl justify-between gap-3 sm:gap-4 bg-[#0D0F10]/40 border-white/[0.06]'
           }`}
-          style={{ maxWidth: isScrolled ? 'min(92vw, 600px)' : undefined }}
+          style={{ maxWidth: isScrolled ? 'min(92vw, 480px)' : '100%' }}
         >
-          {/* Logo & Brand — animates out when scrolled */}
-          <AnimatePresence initial={false}>
+          {/* Logo & Brand — visible at top, removed when converged */}
+          <AnimatePresence>
             {!isScrolled && (
               <motion.div
-                key="brand"
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="flex items-center gap-2 sm:gap-2.5 shrink-0"
+                key="brand-logo"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className="flex items-center gap-2 sm:gap-2.5 shrink-0 overflow-hidden"
               >
                 <span className="flex items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 h-8 w-8 sm:h-9 sm:w-9 shrink-0">
                   <GraduationCap className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-[#4AA6A8]" />
@@ -226,66 +227,40 @@ export function HubClient({ authError }: { authError: string | null }) {
 
           {/* Search container */}
           {session ? (
-            <div className={`relative flex items-center min-w-0 ${
-              isScrolled ? 'gap-1.5' : 'flex-1 mx-2 sm:mx-3'
-            }`}>
-              <AnimatePresence initial={false}>
-                {(!isScrolled || searchExpanded) ? (
-                  <motion.div
-                    key="search-input-wrapper"
-                    initial={isScrolled ? { width: 36, opacity: 0 } : false}
-                    animate={{ width: isScrolled ? 'min(440px, calc(100vw - 120px))' : '100%', opacity: 1 }}
-                    exit={{ width: 36, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-                    className="relative w-full"
+            <motion.div
+              layout
+              className="relative flex items-center min-w-0 flex-1 mx-1.5 sm:mx-2.5"
+            >
+              <div className="relative w-full">
+                <Search className="pointer-events-none absolute left-3 sm:left-3.5 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
+                  onFocus={() => setDropdownOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setDropdownOpen(false);
+                    }, 200);
+                  }}
+                  placeholder={isScrolled ? "Search…" : "Search subjects, topics…"}
+                  aria-label="Search subjects"
+                  className="search-input w-full rounded-xl py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5] transition focus:border-[#4AA6A8]/40 focus:bg-white/[0.06]"
+                />
+                {query && (
+                  <button
+                    onClick={() => { setQuery(''); setDropdownOpen(false); }}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation"
                   >
-                    <Search className="pointer-events-none absolute left-3 sm:left-3.5 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="search"
-                      value={query}
-                      autoFocus={isScrolled && searchExpanded}
-                      onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
-                      onFocus={() => setDropdownOpen(true)}
-                      onBlur={() => {
-                        setTimeout(() => {
-                          setDropdownOpen(false);
-                          if (!query && isScrolled) setSearchExpanded(false);
-                        }, 200);
-                      }}
-                      placeholder="Search subjects, topics…"
-                      aria-label="Search subjects"
-                      className="search-input w-full rounded-xl py-2 sm:py-2.5 pl-8 sm:pl-10 pr-8 text-sm focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5]"
-                    />
-                    {query && (
-                      <button
-                        onClick={() => { setQuery(''); setDropdownOpen(false); if (isScrolled) setSearchExpanded(false); }}
-                        aria-label="Clear search"
-                        className="absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    key="search-icon-btn"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSearchExpanded(true)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 hover:text-white hover:border-white/20 transition-all shadow-md shrink-0 touch-manipulation"
-                    title="Search subjects"
-                  >
-                    <Search className="h-4 w-4" />
-                  </motion.button>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 )}
-              </AnimatePresence>
+              </div>
 
               {/* Autocomplete dropdown */}
               {dropdownOpen && recommendations.length > 0 && (
-                <div className={`absolute z-50 rounded-xl border border-white/10 bg-[#0D0F10]/95 backdrop-blur-xl p-1.5 shadow-2xl max-h-[60vh] overflow-y-auto flex flex-col gap-0.5 ${
+                <div className={`absolute z-50 rounded-xl border border-white/10 bg-[#0D0F10]/98 backdrop-blur-xl p-1.5 shadow-2xl max-h-[60vh] overflow-y-auto flex flex-col gap-0.5 ${
                   isScrolled
                     ? 'left-0 top-[calc(100%+8px)] w-[min(280px,calc(100vw-2rem))]'
                     : 'left-0 right-0 top-[calc(100%+8px)]'
@@ -318,9 +293,9 @@ export function HubClient({ authError }: { authError: string | null }) {
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
           ) : (
-            !isScrolled && <div className="flex-1" />
+            <div className="flex-1" />
           )}
 
           {/* User menu */}
@@ -382,7 +357,7 @@ export function HubClient({ authError }: { authError: string | null }) {
         {/* ---------------------------------------------------------------
          * Hero
          * ------------------------------------------------------------- */}
-        <section className="pb-8 pt-10 text-center sm:pb-11 sm:pt-20">
+        <section className="pb-8 pt-10 text-center sm:pb-11 sm:pt-16">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -394,22 +369,9 @@ export function HubClient({ authError }: { authError: string | null }) {
             </span>
 
             <div className="mt-5 sm:mt-6 flex justify-center">
-              <motion.div
-                className="inline-block px-5 py-3 sm:px-8 sm:py-4 backdrop-blur-[24px] saturate-[190%] border border-white/10 bg-white/[0.035] shadow-[0_8px_32px_0_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.05)] cursor-pointer select-none"
-                style={{ borderRadius: '8px' }}
-                whileHover={{
-                  scale: 1.04,
-                  borderRadius: '32px',
-                  borderColor: 'rgba(255,255,255,0.2)',
-                  backgroundColor: 'rgba(255,255,255,0.06)'
-                }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 14, mass: 0.8 }}
-              >
-                <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight text-[#E8E8E5]">
-                  MAKAUT BUSTERS
-                </h1>
-              </motion.div>
+              <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight text-[#E8E8E5] drop-shadow-sm select-none">
+                MAKAUT BUSTERS
+              </h1>
             </div>
 
             <p className="mx-auto mt-4 sm:mt-5 max-w-xs xs:max-w-sm sm:max-w-xl text-sm sm:text-base leading-relaxed text-[#929694]">

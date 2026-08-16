@@ -9,8 +9,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --no-warnings scripts/handoff.test.mjs && node --experimental-strip-types --no-warnings scripts/subjects.test.mjs",
-    "deploy": "npx opennextjs-cloudflare@1.20.2 build && npx opennextjs-cloudflare@1.20.2 deploy",
-    "preview": "npx opennextjs-cloudflare@1.20.2 build && npx opennextjs-cloudflare@1.20.2 preview"
+    "cf:build": "npx opennextjs-cloudflare@1.20.2 build",
+    "cf:deploy": "npx opennextjs-cloudflare@1.20.2 deploy",
+    "cf:preview": "npx opennextjs-cloudflare@1.20.2 preview",
+    "deploy": "npm run cf:build && npm run cf:deploy",
+    "preview": "npm run cf:build && npm run cf:preview"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

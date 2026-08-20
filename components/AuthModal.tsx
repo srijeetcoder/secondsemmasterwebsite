@@ -103,7 +103,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState<null | 'email' | 'google' | 'otp' | 'resend' | 'forgot'>(null);
+  const [busy, setBusy] = useState<null | 'email' | 'google' | 'otp' | 'resend' | 'forgot' | 'dev'>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 

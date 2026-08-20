@@ -1,155 +1,149 @@
-# Semester 2 Notes Hub
+# MAKAUT BUSTERS
 
-A central landing hub **and** single sign-on gateway for four semester-2 study-notes sites.
-Users sign in once here; every child site opens already authenticated, with no database
-of its own.
+## About Me
 
-| Subject | Code | Site |
-| --- | --- | --- |
-| Basic CS & Programming | ESCS 201 | https://cnotesbycsrijeet.vercel.app/ |
-| Chemistry-I | BSCH 201 | https://chem-notes-nhm8.vercel.app/ |
-| Chemistry Laboratory | BSCH 291 | https://pracchem.vercel.app/ |
-| Mathematics-II | BSM 201 | https://mathsnotesbysrijeet.vercel.app/ |
+Hello, I am Srijeet Chatterjee, a second year B.Tech student in Computer Science and Engineering at Techno Main Salt Lake, Kolkata.
 
-**Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS · Framer Motion · Lucide ·
-Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`)
+I built MAKAUT BUSTERS as a student-focused ecosystem for organizing study materials, university information, notes, practical resources, and academic references for students under MAKAUT.
+
+The goal is simple: make academic resources easier to find, easier to understand, and easier to access.
 
 ---
 
-## 1. Run it locally
+## About MAKAUT BUSTERS
 
-```bash
-npm install
-cp .env.local.example .env.local   # then paste your Supabase values
-npm run dev
+MAKAUT BUSTERS is a collection of interconnected academic websites designed around different subjects and study requirements.
+
+Instead of placing every subject into one large application, each subject has its own focused study portal. The portals share a common authentication and session system, allowing students to move between them without repeatedly signing in.
+
+The ecosystem currently includes dedicated portals for programming, chemistry, chemistry laboratory work, and mathematics.
+
+---
+
+## Study Portal Ecosystem
+
+| Subject | Code | Portal URL | Description |
+| :--- | :--- | :--- | :--- |
+| **Basic C & Programming** | ESCS 201 | [cnotesbycsrijeet.vercel.app](https://cnotesbycsrijeet.vercel.app/) | Programming fundamentals, arrays, memory concepts, dynamic memory allocation, and problem sets. |
+| **Chemistry I** | BSCH 201 | [chem-notes-nhm8.vercel.app](https://chem-notes-nhm8.vercel.app/) | Theory-focused chemistry portal containing lecture notes and study modules for Engineering Chemistry. |
+| **Chemistry Laboratory** | BSCH 291 | [pracchem.vercel.app](https://pracchem.vercel.app/) | Practical experiment manuals, titration tables, lab observations, and viva questions. |
+| **Mathematics II** | BSM 201 | [mathsnotesbysrijeet.vercel.app](https://mathsnotesbysrijeet.vercel.app/) | Differential equations, linear algebra, matrix calculus, and step-by-step solved tutorials. |
+
+---
+
+## Why I Built This
+
+Students often spend more time searching for the right material than studying it.
+
+University syllabi, classroom notes, PDFs, practical records, previous questions, and external resources are often scattered across different platforms.
+
+MAKAUT BUSTERS brings these resources into a structured environment built specifically around the academic requirements of MAKAUT students.
+
+The project is also an opportunity to experiment with modern web development, authentication architecture, database design, responsive interfaces, and cross-application communication.
+
+---
+
+## Core Features
+
+### Unified Authentication & Single Active Session
+The different study portals use a shared authentication system with single active session protection via Supabase Realtime. A student signs in once and can seamlessly move between connected portals.
+
+### Cross-Domain Session Handling
+The ecosystem uses a controlled token handoff mechanism between the individual websites. Authentication state is validated before a session is established on another portal without leaking credentials.
+
+### Session Synchronization
+Important study history, preferences, and session states are synchronized across the connected portals.
+
+### Subject-Focused Interfaces
+Each website focuses on a specific academic area rather than attempting to place every subject into one cluttered interface.
+
+### Responsive Design
+Clean dark frosted glass aesthetic crafted for desktop, tablet, and mobile screens.
+
+---
+
+## Technology Stack
+
+### Frontend
+* **Framework:** Next.js 15 / 16 (App Router)
+* **Language:** TypeScript
+* **Styling:** Tailwind CSS (Vanilla CSS design system tokens)
+* **Animations:** Framer Motion
+* **Icons:** Lucide React
+
+### Backend & Infrastructure
+* **Authentication:** Supabase Auth (SSO / OAuth / Token Handoff)
+* **Database:** PostgreSQL (Supabase with RLS & Realtime)
+* **Deployment:** Vercel Edge
+
+---
+
+## Architecture
+
+MAKAUT BUSTERS follows a multi-portal architecture:
+
+```text
+                    MAKAUT BUSTERS (Central Hub)
+                                |
+                   Shared Authentication Layer
+                                |
+        +-----------------------+-----------------------+
+        |                       |                       |
+   Programming             Chemistry               Mathematics
+     Portal                  Portal                  Portal
+  (ESCS 201)              (BSCH 201)               (BSM 201)
+        |
+   Laboratory Portal
+  (BSCH 291 Practical)
 ```
 
-Open http://localhost:3000.
+Each portal remains independently deployable while participating in the larger ecosystem.
 
-The app renders fine without Supabase credentials — it shows a setup banner and disables
-sign-in, so you can look at the UI before wiring anything up.
+---
 
-## 2. Configure Supabase
+## Design Philosophy
 
-Get both values from **Supabase → Settings → API**:
+1. **Less Searching:** Students should spend less time looking for material and more time studying it.
+2. **Clear Organization:** Subjects, topics, notes, and resources should have predictable navigation and structure.
+3. **Practical Technology:** Built as a real application with production-grade authentication, databases, deployment, and security.
 
-```bash
-# .env.local
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key
-```
+---
 
-Restart the dev server afterwards — Next.js inlines `NEXT_PUBLIC_*` at boot.
+## Academic Focus
 
-> The `anon` key is meant to be public. Never put the `service_role` key in a
-> `NEXT_PUBLIC_` variable.
+The project is primarily designed around the needs of students studying under **Maulana Abul Kalam Azad University of Technology (MAKAUT)**, West Bengal.
 
-Then, in **Authentication → URL Configuration**, add:
+The initial focus is B.Tech Computer Science and Engineering coursework, structured so that additional subjects and academic resources can be added over time.
 
-```
-Site URL:
-  https://<your-hub-domain>
+---
 
-Redirect URLs:
-  http://localhost:3000/auth/callback
-  https://<your-hub-domain>/auth/callback
-  https://cnotesbycsrijeet.vercel.app
-  https://chem-notes-nhm8.vercel.app
-  https://pracchem.vercel.app
-  https://mathsnotesbysrijeet.vercel.app
-```
+## Current Status
 
-For Google sign-in, enable the Google provider under **Authentication → Providers** and
-paste in your OAuth client ID/secret from the Google Cloud console.
+MAKAUT BUSTERS is an actively developed student project. Current work focuses on expanding academic resources, refining cross-portal synchronization, and enhancing student study utilities.
 
-## 3. How the cross-domain handoff works
+### Future Plans
+* More MAKAUT subjects
+* Previous year question (PYQ) resources
+* Interactive quizzes and flashcards
+* Improved practical & viva resources
+* Additional academic utilities
 
-The hub and the notes sites are separate origins, so they cannot share cookies. What they
-share instead is **the Supabase project itself**.
+---
 
-1. The user signs in on the hub. Supabase issues an access token (JWT) and a refresh token.
-2. When a card is clicked, the hub appends both tokens to the destination URL:
-   ```
-   https://pracchem.vercel.app/#access_token=eyJ...&refresh_token=v1...&expires_at=...
-   ```
-3. The child site reads them and calls `supabase.auth.setSession({ access_token, refresh_token })`
-   using the **same** project URL and anon key. Supabase verifies the JWT signature, stores
-   the session, and takes over refreshing it.
+## Developer & Connect
 
-The child site needs no user table, no auth UI, and no password handling.
+**Srijeet Chatterjee**  
+*B.Tech in Computer Science and Engineering*  
+*Techno Main Salt Lake, Kolkata*  
 
-**Why the hash fragment and not `?access_token=`** — fragments are never transmitted to the
-server, so tokens stay out of server logs, proxy logs, and the `Referer` header. To switch,
-set `HANDOFF_MODE = 'query'` in [`lib/handoff.ts`](lib/handoff.ts); the child snippet reads
-both, so nothing else changes.
+* **GitHub:** [@srijeetcoder](https://github.com/srijeetcoder)
+* **LinkedIn:** [csrijeet-coding](https://www.linkedin.com/in/csrijeet-coding)
+* **Instagram:** [@_.srijeet_](https://www.instagram.com/_.srijeet_/)
 
-Other safeguards in `lib/handoff.ts`:
+---
 
-- `ALLOWED_HANDOFF_ORIGINS` — tokens are only ever appended to those four origins. Any other
-  URL gets the plain link, so a typo can't leak a session.
-- HTTPS is required; `http://` targets silently fall back to the token-free URL.
-- The child snippet calls `history.replaceState` immediately, scrubbing tokens from the
-  address bar and the history entry.
+## Built For Students
 
-## 4. Wire up a child site
+MAKAUT BUSTERS is made for students who want their academic resources organized in one connected ecosystem.
 
-Copy [`integration/child-site-auth.ts`](integration/child-site-auth.ts) into the child
-project, set the same two env vars, and call it on load:
-
-```ts
-import { adoptSessionFromHub } from '@/lib/child-site-auth';
-
-useEffect(() => {
-  adoptSessionFromHub().then((user) => {
-    console.log('Signed in as', user?.email);
-  });
-}, []);
-```
-
-That file also contains a `requireAuth()` guard that bounces signed-out visitors back to the
-hub, and a plain `<script type="module">` version for sites without a build step.
-
-## 5. Project layout
-
-```
-app/
-  layout.tsx                 fonts, metadata, dark theme shell
-  page.tsx                   server entry + architecture notes
-  globals.css                glassmorphism + per-card accent system
-  auth/callback/route.ts     exchangeCodeForSession (OAuth + magic link)
-components/
-  HubClient.tsx              top bar, hero, search, grid orchestration
-  NoteCard.tsx               glass card, accent glow, handoff link
-  AuthModal.tsx              Google / password / magic-link sign-in
-  SessionCard.tsx            "Session Active" strip + logout
-  UserMenu.tsx               avatar dropdown in the top bar
-  IntegrationGuide.tsx       in-page developer docs
-  BackgroundMesh.tsx         animated radial gradient mesh
-lib/
-  handoff.ts                 cross-domain token handoff + origin allowlist
-  subjects.ts                the four subjects + search filter
-  useAuth.ts                 session hook
-  supabase/{config,client,server}.ts
-proxy.ts                     refreshes the session cookie per request
-                             (Next 16's replacement for middleware.ts)
-integration/child-site-auth.ts   drop-in snippet for the child sites
-scripts/*.test.mjs           handoff + search checks — `npm test`
-```
-
-## 6. Checks
-
-```bash
-npm test        # handoff allowlist / token placement, search filtering
-npm run typecheck
-npm run lint
-```
-
-## 7. Deploy
-
-```bash
-vercel deploy --prod
-```
-
-Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the Vercel project's
-environment variables, then add the deployed domain's `/auth/callback` to the Supabase
-redirect allowlist.
+*Study. Practice. Build. Repeat.*

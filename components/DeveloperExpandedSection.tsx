@@ -142,19 +142,45 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
                   </div>
                 </div>
 
-                {/* GitHub Action Button */}
-                <div className="flex justify-center md:justify-end">
+                {/* Social Actions Buttons */}
+                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
                   <a
                     href="https://github.com/srijeetcoder"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-mono font-medium text-white shadow-lg backdrop-blur-md hover:border-[#4AA6A8]/60 transition duration-300"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-mono text-white shadow-md backdrop-blur-md hover:border-[#4AA6A8]/60 transition"
                   >
-                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                       <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                     </svg>
-                    <span>View GitHub Profile</span>
-                    <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                    <span>GitHub</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+
+                  <a
+                    href="https://www.linkedin.com/in/csrijeet-coding"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0A66C2]/20 hover:bg-[#0A66C2]/35 border border-[#0A66C2]/40 text-xs font-mono text-cyan-200 shadow-md backdrop-blur-md hover:border-[#0A66C2] transition"
+                  >
+                    <svg className="h-3.5 w-3.5 fill-current text-[#0A66C2]" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28" />
+                    </svg>
+                    <span>LinkedIn</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+
+                  <a
+                    href="https://www.instagram.com/_.srijeet_/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-amber-500/15 hover:from-purple-500/25 hover:to-pink-500/25 border border-pink-500/30 text-xs font-mono text-pink-200 shadow-md backdrop-blur-md hover:border-pink-500/60 transition"
+                  >
+                    <svg className="h-3.5 w-3.5 fill-current text-pink-400" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                    <span>Instagram</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" />
                   </a>
                 </div>
               </div>
@@ -182,13 +208,64 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
                   </div>
 
                   {/* Markdown Body */}
-                  <div className="p-5 sm:p-6 text-left space-y-4">
-                    <p className="text-sm sm:text-base leading-relaxed text-slate-100 font-normal selection:bg-[#4AA6A8]/30">
-                      Hello, I am Srijeet Chatterjee a Second year student at Techno Main Salt Lake, Kolkata pursuing B.Tech in Computer Science &amp; Engineering. I made this project to help students enrolled in colleges under MAKAUT to study. Previously I made the individual website....
-                    </p>
+                  <div className="p-5 sm:p-6 text-left space-y-4 max-h-[500px] overflow-y-auto pr-3">
+                    <div>
+                      <h3 className="text-base font-bold text-white mb-2 flex items-center gap-2">
+                        <span>👋 About Me</span>
+                      </h3>
+                      <p className="text-xs sm:text-sm leading-relaxed text-slate-200">
+                        Hello, I am <strong>Srijeet Chatterjee</strong>, a second year B.Tech student in Computer Science and Engineering at Techno Main Salt Lake, Kolkata.
+                      </p>
+                      <p className="text-xs sm:text-sm leading-relaxed text-slate-200 mt-2">
+                        I built <strong>MAKAUT BUSTERS</strong> as a student-focused ecosystem for organizing study materials, university information, notes, practical resources, and academic references for students under MAKAUT.
+                      </p>
+                    </div>
 
-                    <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] text-xs sm:text-sm text-amber-200 leading-relaxed font-sans backdrop-blur-sm">
-                      💡 <strong>Mission:</strong> To streamline study material, university notice tracking, and notes discovery across MAKAUT engineering branches through unified Single Sign-On and responsive portals.
+                    <div className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/[0.06] text-xs sm:text-sm text-cyan-200 leading-relaxed font-sans backdrop-blur-sm">
+                      🎯 <strong>The Goal:</strong> Make academic resources easier to find, easier to understand, and easier to access for all engineering students.
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-2">
+                        About MAKAUT BUSTERS
+                      </h4>
+                      <p className="text-xs sm:text-sm leading-relaxed text-slate-300">
+                        MAKAUT BUSTERS is a collection of interconnected academic websites designed around different subjects and study requirements. Instead of placing every subject into one large application, each subject has its own focused study portal. The portals share a common authentication and session system, allowing students to move between them without repeatedly signing in.
+                      </p>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-2">
+                        Why I Built This
+                      </h4>
+                      <p className="text-xs sm:text-sm leading-relaxed text-slate-300">
+                        Students often spend more time searching for the right material than studying it. University syllabi, classroom notes, PDFs, practical records, previous questions, and external resources are often scattered across different platforms. MAKAUT BUSTERS brings these resources into a structured environment built specifically around the academic requirements of MAKAUT students.
+                      </p>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-2">
+                        Design &amp; Philosophy
+                      </h4>
+                      <ul className="text-xs text-slate-300 space-y-1.5 font-sans">
+                        <li className="flex items-start gap-2">
+                          <span className="text-[#4AA6A8] font-bold">•</span>
+                          <span><strong>Less Searching:</strong> Spend less time looking for material and more time studying it.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-[#4AA6A8] font-bold">•</span>
+                          <span><strong>Clear Organization:</strong> Predictable syllabus navigation and topic structures.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-[#4AA6A8] font-bold">•</span>
+                          <span><strong>Practical Technology:</strong> Cross-domain SSO, Realtime active session security, and responsive UI.</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                      <span>Study. Practice. Build. Repeat.</span>
+                      <span className="text-[#4AA6A8]">@srijeetcoder</span>
                     </div>
                   </div>
                 </div>

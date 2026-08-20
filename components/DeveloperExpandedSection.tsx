@@ -223,7 +223,7 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
                           </span>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10 shrink-0">
-                          {sub.semester}
+                          {sub.badge}
                         </span>
                       </div>
                     ))}

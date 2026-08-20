@@ -551,50 +551,87 @@ function HubClientInner() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#090A0B]/85 backdrop-blur-md"
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-[#090A0B]/80 backdrop-blur-sm"
               onClick={dismissConflict}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-md rounded-2xl border border-amber-500/30 bg-[#121417]/95 p-6 shadow-2xl backdrop-blur-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Session Replaced"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+              className="glass-strong relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0D0F10]/95 p-6 shadow-2xl backdrop-blur-2xl flex flex-col gap-5"
             >
-              <div className="flex items-center gap-3 text-amber-400 mb-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <ShieldAlert className="h-5 w-5 text-amber-400" />
+              {/* Subtle top hairline glow */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4AA6A8]/40 to-transparent" />
+
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-[#4AA6A8]">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#E8E8E5]">
+                      Session Replaced
+                    </h2>
+                    <p className="text-[11px] font-mono text-[#828886] mt-0.5">
+                      Single Active Device Policy
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-white text-base">
-                    Session Terminated
-                  </h3>
-                  <p className="text-xs text-amber-400/90 font-mono">
-                    Concurrent Login Detected
-                  </p>
+
+                <button
+                  type="button"
+                  onClick={dismissConflict}
+                  aria-label="Close dialog"
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <p className="text-xs sm:text-[13px] text-[#929694] leading-relaxed">
+                Your account was authenticated from another device or browser session. To protect your account integrity, access on this device has been paused.
+              </p>
+
+              {/* Status Spec Box */}
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-[#828886]">
+                  <span>Protection type</span>
+                  <span className="font-mono text-slate-300">Single active token</span>
+                </div>
+                <div className="flex items-center justify-between text-[#828886]">
+                  <span>Current device</span>
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-amber-400/90">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    Signed out locally
+                  </span>
                 </div>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-3">
-                You were signed out because this account was just logged into from another browser or device. For account security, only one active device session is allowed at a time.
-              </p>
-
-              <div className="mt-6 flex flex-col sm:flex-row gap-2.5">
+              {/* Actions */}
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={dismissConflict}
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] px-4 py-2.5 text-xs font-medium text-[#929694] hover:text-[#E8E8E5] transition text-center cursor-pointer"
+                >
+                  Continue as Guest
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     dismissConflict();
                     openAuth();
                   }}
-                  className="flex-1 rounded-xl bg-[#4AA6A8] hover:bg-[#3d9193] text-black font-semibold text-xs sm:text-sm py-2.5 px-4 transition text-center cursor-pointer shadow-lg shadow-[#4AA6A8]/20"
+                  className="flex-1 rounded-xl bg-[#4AA6A8] hover:bg-[#3d9193] text-[#090A0B] font-semibold text-xs py-2.5 px-4 transition text-center cursor-pointer shadow-lg shadow-[#4AA6A8]/15"
                 >
-                  Log In on this Device
-                </button>
-                <button
-                  type="button"
-                  onClick={dismissConflict}
-                  className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 text-xs sm:text-sm py-2.5 px-4 transition cursor-pointer"
-                >
-                  Dismiss
+                  Sign In on This Device
                 </button>
               </div>
             </motion.div>

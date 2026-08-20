@@ -467,4 +467,82 @@
   }
 }
 
+/* Concentric color-changing animated rings for Developer Card */
+@keyframes devColorCycle1 {
+  0% {
+    border-color: #4AA6A8;
+    box-shadow: 0 0 20px rgba(74, 166, 168, 0.45);
+  }
+  25% {
+    border-color: #8B5CF6;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.45);
+  }
+  50% {
+    border-color: #EC4899;
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.45);
+  }
+  75% {
+    border-color: #F59E0B;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+  }
+  100% {
+    border-color: #4AA6A8;
+    box-shadow: 0 0 20px rgba(74, 166, 168, 0.45);
+  }
+}
+
+@keyframes devColorCycle2 {
+  0% {
+    border-color: #F59E0B;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+  }
+  25% {
+    border-color: #EC4899;
+    box-shadow: 0 0 25px rgba(236, 72, 153, 0.35);
+  }
+  50% {
+    border-color: #3B82F6;
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.35);
+  }
+  75% {
+    border-color: #10B981;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+  }
+  100% {
+    border-color: #F59E0B;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+  }
+}
+
+@keyframes devColorCycle3 {
+  0% {
+    border-color: #EC4899;
+    box-shadow: 0 0 30px rgba(236, 72, 153, 0.25);
+  }
+  33% {
+    border-color: #06B6D4;
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.25);
+  }
+  66% {
+    border-color: #A855F7;
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.25);
+  }
+  100% {
+    border-color: #EC4899;
+    box-shadow: 0 0 30px rgba(236, 72, 153, 0.25);
+  }
+}
+
+.animate-dev-ring-1 {
+  animation: devColorCycle1 6s linear infinite, spin 14s linear infinite;
+}
+
+.animate-dev-ring-2 {
+  animation: devColorCycle2 7s linear infinite, spin 10s linear infinite reverse;
+}
+
+.animate-dev-ring-3 {
+  animation: devColorCycle3 8s linear infinite, spin 18s linear infinite;
+}
+
 

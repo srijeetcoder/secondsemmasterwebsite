@@ -12,6 +12,8 @@ import { SessionCard } from '@/components/SessionCard';
 import { SubjectCarousel } from '@/components/SubjectCarousel';
 import { UserMenu } from '@/components/UserMenu';
 import { NoticeDropdown } from '@/components/NoticeDropdown';
+import { AboutDeveloper } from '@/components/AboutDeveloper';
+import { DeveloperExpandedSection } from '@/components/DeveloperExpandedSection';
 import { SUBJECTS, filterSubjects, type Subject } from '@/lib/subjects';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { useAuth } from '@/lib/useAuth';
@@ -34,6 +36,19 @@ function HubClientInner() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [devSectionOpen, setDevSectionOpen] = useState(false);
+
+  const handleToggleDevSection = () => {
+    setDevSectionOpen((prev) => {
+      const nextState = !prev;
+      if (nextState) {
+        setTimeout(() => {
+          document.getElementById('about-developer-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+      }
+      return nextState;
+    });
+  };
 
   // Hysteresis: engage at 50px, disengage at 30px — prevents rapid toggling
   // while the user hovers near the threshold, keeping the transition smooth.
@@ -478,24 +493,38 @@ function HubClientInner() {
           />
         </div>
 
-        <footer className="mt-10 flex flex-col items-center gap-1.5 text-center px-4">
+        {/* ---------------------------------------------------------------
+         * About the Developer Expanded In-Page Section
+         * ------------------------------------------------------------- */}
+        <DeveloperExpandedSection
+          open={devSectionOpen}
+          onClose={() => setDevSectionOpen(false)}
+        />
+
+        <footer className="mt-10 flex flex-col items-center gap-2 text-center px-4">
           <p className="text-[11px] sm:text-xs text-[#626766]">
             MAKAUT BUSTERS · single sign-on across four notes sites
           </p>
           <p className="text-[10px] sm:text-[11px] text-[#626766]">
             Sessions are issued and validated by Supabase Auth.
           </p>
-          <p className="mt-3 text-[11px] sm:text-xs text-slate-400 flex items-center justify-center gap-1 font-mono flex-wrap">
-            Made with <span className="text-rose-500">❤️</span> by{' '}
-            <a
-              href="https://github.com/srijeetcoder"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-slate-300 hover:text-cyan-400 underline underline-offset-4 transition"
-            >
-              srijeetcoder
-            </a>
-          </p>
+          
+          <AnimatePresence>
+            {!devSectionOpen && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="mt-3"
+              >
+                <AboutDeveloper 
+                  onExpand={handleToggleDevSection}
+                  isExpanded={devSectionOpen}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </footer>
       </div>
 

@@ -127,6 +127,22 @@ export async function signOutLocally() {
  *       return () => subscription.unsubscribe();
  *     }, []);
  *
+ *     // Optional: Realtime listener to auto-kick if another device signs in
+ *     useEffect(() => {
+ *       if (!user?.id) return;
+ *       const channel = supabase
+ *         .channel(`child-session-lock-${user.id}`)
+ *         .on(
+ *           'postgres_changes',
+ *           { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+ *           () => {
+ *             // If needed, check active_session_id vs local token or prompt re-auth
+ *           }
+ *         )
+ *         .subscribe();
+ *       return () => { supabase.removeChannel(channel); };
+ *     }, [user?.id]);
+ *
  *     return { user, loading };
  *   }
  *

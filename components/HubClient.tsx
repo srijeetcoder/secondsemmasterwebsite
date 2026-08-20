@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, GraduationCap, Search, SearchX, X, BookOpen, FileText, ExternalLink } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Search, SearchX, X, BookOpen, FileText, ExternalLink, ShieldAlert } from 'lucide-react';
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -25,7 +25,7 @@ import { setDevLogin } from '@/lib/useAuth';
 function HubClientInner() {
   const searchParams = useSearchParams();
   const authError = searchParams.get('auth_error');
-  const { supabase, session, user, loading } = useAuth();
+  const { supabase, session, user, loading, sessionConflict, dismissConflict } = useAuth();
 
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -542,6 +542,65 @@ function HubClientInner() {
         supabase={supabase}
         onSignOut={signOut}
       />
+
+      {/* Concurrent Active Session Kickout Notice Modal */}
+      <AnimatePresence>
+        {sessionConflict && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#090A0B]/85 backdrop-blur-md"
+              onClick={dismissConflict}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md rounded-2xl border border-amber-500/30 bg-[#121417]/95 p-6 shadow-2xl backdrop-blur-xl"
+            >
+              <div className="flex items-center gap-3 text-amber-400 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <ShieldAlert className="h-5 w-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-base">
+                    Session Terminated
+                  </h3>
+                  <p className="text-xs text-amber-400/90 font-mono">
+                    Concurrent Login Detected
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-3">
+                You were signed out because this account was just logged into from another browser or device. For account security, only one active device session is allowed at a time.
+              </p>
+
+              <div className="mt-6 flex flex-col sm:flex-row gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    dismissConflict();
+                    openAuth();
+                  }}
+                  className="flex-1 rounded-xl bg-[#4AA6A8] hover:bg-[#3d9193] text-black font-semibold text-xs sm:text-sm py-2.5 px-4 transition text-center cursor-pointer shadow-lg shadow-[#4AA6A8]/20"
+                >
+                  Log In on this Device
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissConflict}
+                  className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 text-xs sm:text-sm py-2.5 px-4 transition cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -17,6 +17,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { setDevLogin } from '@/lib/useAuth';
 
 type Mode = 'signin' | 'signup' | 'otp' | 'forgot' | 'forgot-sent';
 
@@ -178,6 +179,12 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       setError(oauthError.message);
       setBusy(null);
     }
+  }
+
+  /* ── Dev one-click login (development only) ───────────────────────────── */
+  function handleDevLogin() {
+    setDevLogin(true);
+    onClose();
   }
 
   /* ── Sign-in / Sign-up submit ─────────────────────────────────────────── */
@@ -420,6 +427,23 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 )}
                 Continue with Google
               </button>
+
+              {/* Dev Login — visible only in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <button
+                  type="button"
+                  onClick={handleDevLogin}
+                  disabled={busy !== null}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/[0.06] px-4 py-2 text-xs font-medium text-amber-400 transition hover:border-amber-400/60 hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy === 'dev' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <span className="font-mono text-[10px] uppercase tracking-widest opacity-70">DEV</span>
+                  )}
+                  Dev Login
+                </button>
+              )}
 
               <div className="my-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-white/10" />

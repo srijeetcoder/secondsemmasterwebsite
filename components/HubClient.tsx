@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, GraduationCap, Search, SearchX, X, BookOpen, FileText, ExternalLink } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { AuthModal } from '@/components/AuthModal';
 import { BackgroundMesh } from '@/components/BackgroundMesh';
@@ -16,9 +17,12 @@ import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { useAuth } from '@/lib/useAuth';
 import { buildHandoffUrl } from '@/lib/handoff';
 import { SEARCH_INDEX } from '@/lib/searchIndex';
+import { setDevLogin } from '@/lib/useAuth';
 
-/** `authError` is read server-side from ?auth_error= and passed down by app/page.tsx. */
-export function HubClient({ authError }: { authError: string | null }) {
+/** Reads ?auth_error= from the URL client-side (compatible with static export). */
+function HubClientInner() {
+  const searchParams = useSearchParams();
+  const authError = searchParams.get('auth_error');
   const { supabase, session, user, loading } = useAuth();
 
   const [query, setQuery] = useState('');
@@ -125,13 +129,13 @@ export function HubClient({ authError }: { authError: string | null }) {
     const fetchNotices = async () => {
       try {
         const res = await fetch('/api/notices');
-        if (!res.ok) throw new Error('Failed to fetch notices');
+        if (!res.ok) return;
         const data = await res.json();
-        if (isMounted && data && data.notices) {
+        if (isMounted && data && data.notices && data.notices.length > 0) {
           setNotices(data.notices);
         }
       } catch (err) {
-        console.error('[notices] Error fetching MAKAUT notices:', err);
+        console.warn('[notices] Could not fetch live notices, using defaults:', err);
       }
     };
     fetchNotices();
@@ -179,6 +183,7 @@ export function HubClient({ authError }: { authError: string | null }) {
 
   async function signOut() {
     closeAuth();
+    if (process.env.NODE_ENV === 'development') setDevLogin(false);
     await supabase?.auth.signOut();
   }
 
@@ -191,121 +196,61 @@ export function HubClient({ authError }: { authError: string | null }) {
         <div className="mb-4 sm:mb-5 w-full">
           <NoticeDropdown notices={notices} />
         </div>
-        {/* Spacer to prevent page jump when header docks fixed */}
-        <motion.div
-          animate={{ height: isScrolled ? 64 : 0 }}
-          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-          className="overflow-hidden"
-        />
 
-        <motion.header
-          layout
-          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-          className={`navbar z-50 flex items-center shadow-2xl backdrop-blur-xl border transform-gpu ${
-            isScrolled
-              ? 'fixed top-3 left-3 sm:top-4 sm:left-4 md:left-8 py-1.5 px-2.5 rounded-xl gap-2.5 bg-[#0D0F10]/95 border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.6)]'
-              : 'relative w-full py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl justify-between gap-3 sm:gap-4 bg-[#0D0F10]/40 border-white/[0.06]'
-          }`}
-          style={{ maxWidth: isScrolled ? 'min(92vw, 480px)' : '100%' }}
+
+        {/* ── Full-width header — fades out when scrolled (stays in flow so content never jumps) ── */}
+        <AnimatePresence initial={false}>
+          {!isScrolled && (
+          <motion.header
+            key="full-header"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full flex items-center justify-between gap-3 sm:gap-4 py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl navbar shadow-2xl backdrop-blur-xl border bg-[#0D0F10]/40 border-white/[0.06]"
         >
-          {/* Logo & Brand — visible at top, removed when converged */}
-          <AnimatePresence>
-            {!isScrolled && (
-              <motion.div
-                key="brand-logo"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                className="flex items-center gap-2 sm:gap-2.5 shrink-0 overflow-hidden"
-              >
-                <span className="flex items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 h-8 w-8 sm:h-9 sm:w-9 shrink-0">
-                  <GraduationCap className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-[#4AA6A8]" />
-                </span>
-                <span className="hidden xs:block whitespace-nowrap text-sm font-semibold tracking-tight text-[#E8E8E5]">
-                  MAKAUT BUSTERS
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <span className="flex items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 h-8 w-8 sm:h-9 sm:w-9 shrink-0">
+              <GraduationCap className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-[#4AA6A8]" />
+            </span>
+            <span className="hidden xs:block whitespace-nowrap text-sm font-semibold tracking-tight text-[#E8E8E5]">
+              MAKAUT BUSTERS
+            </span>
+          </div>
 
-          {/* Search container */}
+          {/* Full search bar */}
           {session ? (
-            <div className="relative flex items-center min-w-0">
-              <AnimatePresence initial={false} mode="wait">
-                {(!isScrolled || searchExpanded) ? (
-                  <motion.div
-                    key="search-input-wrapper"
-                    initial={isScrolled ? { width: 36, opacity: 0 } : false}
-                    animate={{ width: isScrolled ? 'min(280px, calc(90vw - 100px))' : '100%', opacity: 1 }}
-                    exit={{ width: 36, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                    className="relative w-full flex-1"
-                  >
-                    <Search className="pointer-events-none absolute left-3 sm:left-3.5 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="search"
-                      value={query}
-                      autoFocus={isScrolled && searchExpanded}
-                      onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
-                      onFocus={() => setDropdownOpen(true)}
-                      onBlur={() => {
-                        setTimeout(() => {
-                          setDropdownOpen(false);
-                          if (!query && isScrolled) setSearchExpanded(false);
-                        }, 200);
-                      }}
-                      placeholder="Search subjects, topics…"
-                      aria-label="Search subjects"
-                      className="search-input w-full rounded-xl py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5] transition focus:border-[#4AA6A8]/40 focus:bg-white/[0.06]"
-                    />
-                    {query && (
-                      <button
-                        onClick={() => { setQuery(''); setDropdownOpen(false); if (isScrolled) setSearchExpanded(false); }}
-                        aria-label="Clear search"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </motion.div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSearchExpanded(true)}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:text-white hover:border-[#4AA6A8]/40 hover:bg-white/[0.08] transition shadow-md shrink-0 touch-manipulation"
-                    title="Search subjects"
-                  >
-                    <Search className="h-4 w-4" />
+            <div className="relative flex items-center flex-1 mx-3">
+              <div className="relative w-full">
+                <Search className="pointer-events-none absolute left-3 sm:left-3.5 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
+                  onFocus={() => setDropdownOpen(true)}
+                  onBlur={() => { setTimeout(() => setDropdownOpen(false), 200); }}
+                  placeholder="Search subjects, topics…"
+                  aria-label="Search subjects"
+                  className="search-input w-full rounded-xl py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5] transition focus:border-[#4AA6A8]/40 focus:bg-white/[0.06]"
+                />
+                {query && (
+                  <button onClick={() => { setQuery(''); setDropdownOpen(false); }} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation">
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 )}
-              </AnimatePresence>
-
-              {/* Autocomplete dropdown */}
+              </div>
               {dropdownOpen && recommendations.length > 0 && (
-                <div className={`absolute z-50 rounded-xl border border-white/10 bg-[#0D0F10]/98 backdrop-blur-xl p-1.5 shadow-2xl max-h-[60vh] overflow-y-auto flex flex-col gap-0.5 ${
-                  isScrolled
-                    ? 'left-0 top-[calc(100%+8px)] w-[min(280px,calc(100vw-2rem))]'
-                    : 'left-0 right-0 top-[calc(100%+8px)]'
-                }`}>
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-xl border border-white/10 bg-[#0D0F10]/98 backdrop-blur-xl p-1.5 shadow-2xl max-h-[60vh] overflow-y-auto flex flex-col gap-0.5">
                   {recommendations.map((item, idx) => (
-                    <a
-                      key={idx}
-                      href={item.url}
-                      target={item.url.startsWith('http') ? '_blank' : undefined}
-                      rel={item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      onClick={() => setDropdownOpen(false)}
-                      className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group"
-                    >
+                    <a key={idx} href={item.url} target={item.url.startsWith('http') ? '_blank' : undefined} rel={item.url.startsWith('http') ? 'noopener noreferrer' : undefined} onClick={() => setDropdownOpen(false)} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group">
                       <div className="flex items-center gap-2.5 min-w-0">
                         {item.type === 'subject' && <GraduationCap className="h-4 w-4 text-[#4AA6A8] shrink-0" />}
                         {item.type === 'notice' && <FileText className="h-4 w-4 text-[#A58A55] shrink-0" />}
                         {item.type === 'topic' && <BookOpen className="h-4 w-4 text-[#827A9B] shrink-0" />}
                         <div className="flex flex-col min-w-0">
                           <span className="text-xs font-semibold text-slate-200 group-hover:text-[#4AA6A8] transition truncate">{item.label}</span>
-                          {item.snippet && (
-                            <span className="text-[10px] text-slate-400 truncate mt-0.5 leading-none">{item.snippet}</span>
-                          )}
+                          {item.snippet && <span className="text-[10px] text-slate-400 truncate mt-0.5 leading-none">{item.snippet}</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -317,22 +262,103 @@ export function HubClient({ authError }: { authError: string | null }) {
                 </div>
               )}
             </div>
-          ) : (
-            <div className="flex-1" />
-          )}
+          ) : <div className="flex-1" />}
 
           {/* User menu */}
           <div className="shrink-0 flex items-center">
-            <UserMenu
-              user={user}
-              loading={loading}
-              isScrolled={isScrolled}
-              onSignIn={() => openAuth()}
-              onSignOut={signOut}
-              onOpenProfile={() => setProfileOpen(true)}
-            />
+            <UserMenu user={user} loading={loading} isScrolled={false} onSignIn={() => openAuth()} onSignOut={signOut} onOpenProfile={() => setProfileOpen(true)} />
           </div>
-        </motion.header>
+          </motion.header>
+          )}
+        </AnimatePresence>
+
+        {/* Placeholder keeps page layout stable when full header exits */}
+        {isScrolled && <div className="w-full" style={{ height: 56 }} />}
+
+        <AnimatePresence initial={false}>
+          {isScrolled && (
+          <motion.div
+            key="compact-pill"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 flex items-center gap-2.5 py-1.5 px-2.5 rounded-xl navbar bg-[#0D0F10]/95 border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+        >
+          {/* Compact search: icon → expands on click */}
+          {session && (
+            <div className="relative flex items-center">
+              <AnimatePresence initial={false} mode="wait">
+                {searchExpanded ? (
+                  <motion.div
+                    key="compact-search-input"
+                    initial={{ width: 36, opacity: 0 }}
+                    animate={{ width: 'min(280px, calc(90vw - 80px))', opacity: 1 }}
+                    exit={{ width: 36, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                    className="relative"
+                  >
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="search"
+                      value={query}
+                      autoFocus
+                      onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
+                      onFocus={() => setDropdownOpen(true)}
+                      onBlur={() => { setTimeout(() => { setDropdownOpen(false); if (!query) setSearchExpanded(false); }, 200); }}
+                      placeholder="Search subjects, topics…"
+                      aria-label="Search subjects"
+                      className="search-input w-full rounded-xl py-1.5 pl-8 pr-7 text-xs focus:outline-none bg-white/[0.04] border border-white/10 text-[#E8E8E5] transition focus:border-[#4AA6A8]/40 focus:bg-white/[0.06]"
+                    />
+                    {query && (
+                      <button onClick={() => { setQuery(''); setDropdownOpen(false); setSearchExpanded(false); }} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:bg-white/5 hover:text-[#929694] touch-manipulation">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </motion.div>
+                ) : (
+                  <button
+                    key="compact-search-icon"
+                    type="button"
+                    onClick={() => setSearchExpanded(true)}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:text-white hover:border-[#4AA6A8]/40 hover:bg-white/[0.08] transition shadow-md shrink-0 touch-manipulation"
+                    title="Search subjects"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                )}
+              </AnimatePresence>
+              {/* Compact dropdown */}
+              {dropdownOpen && recommendations.length > 0 && searchExpanded && (
+                <div className="absolute left-0 top-[calc(100%+8px)] w-[min(280px,calc(100vw-2rem))] z-50 rounded-xl border border-white/10 bg-[#0D0F10]/98 backdrop-blur-xl p-1.5 shadow-2xl max-h-[60vh] overflow-y-auto flex flex-col gap-0.5">
+                  {recommendations.map((item, idx) => (
+                    <a key={idx} href={item.url} target={item.url.startsWith('http') ? '_blank' : undefined} rel={item.url.startsWith('http') ? 'noopener noreferrer' : undefined} onClick={() => setDropdownOpen(false)} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition duration-150 group">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {item.type === 'subject' && <GraduationCap className="h-4 w-4 text-[#4AA6A8] shrink-0" />}
+                        {item.type === 'notice' && <FileText className="h-4 w-4 text-[#A58A55] shrink-0" />}
+                        {item.type === 'topic' && <BookOpen className="h-4 w-4 text-[#827A9B] shrink-0" />}
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-semibold text-slate-200 group-hover:text-[#4AA6A8] transition truncate">{item.label}</span>
+                          {item.snippet && <span className="text-[10px] text-slate-400 truncate mt-0.5 leading-none">{item.snippet}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <span className="hidden sm:inline text-[9px] font-mono text-slate-500 uppercase px-1 rounded bg-white/5 border border-white/5">{item.sublabel}</span>
+                        {item.url.startsWith('http') && <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-[#4AA6A8] transition shrink-0" />}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* User menu */}
+          <div className="shrink-0 flex items-center">
+            <UserMenu user={user} loading={loading} isScrolled={true} onSignIn={() => openAuth()} onSignOut={signOut} onOpenProfile={() => setProfileOpen(true)} />
+          </div>
+          </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ---------------------------------------------------------------
          * Setup + error banners
@@ -488,5 +514,13 @@ export function HubClient({ authError }: { authError: string | null }) {
         onSignOut={signOut}
       />
     </>
+  );
+}
+
+export function HubClient() {
+  return (
+    <Suspense>
+      <HubClientInner />
+    </Suspense>
   );
 }

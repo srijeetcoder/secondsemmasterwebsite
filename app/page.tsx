@@ -31,17 +31,10 @@ import { HubClient } from '@/components/HubClient';
  * copy-paste snippets, so it stays discoverable without reading the source.
  * =========================================================================== */
 
-export default async function Page({
-  searchParams,
-}: {
-  // `/auth/callback` bounces failures back here as ?auth_error=<message>.
-  searchParams: Promise<{ auth_error?: string }>;
-}) {
-  const { auth_error: authError } = await searchParams;
-
+export default function Page() {
   return (
     <main className="relative min-h-screen">
-      <HubClient authError={authError ?? null} />
+      <HubClient />
     </main>
   );
 }

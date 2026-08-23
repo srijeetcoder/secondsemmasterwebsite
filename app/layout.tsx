@@ -12,6 +12,11 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Notes4BtechCSE (N4BC)',
   description: 'Notes4BtechCSE (N4BC) — One portal for all your semester resources, powered by single sign-on.',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/logo.png',
+  },
 };
 
 export const viewport: Viewport = {

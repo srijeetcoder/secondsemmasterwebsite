@@ -88,9 +88,7 @@ export function generatePromotionalEmailHtml(params: {
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td>
-                    <div style="display:inline-block; vertical-align:middle; width:36px; height:36px; line-height:36px; text-align:center; background:rgba(74,166,168,0.15); border:1px solid rgba(74,166,168,0.3); border-radius:10px;">
-                      <span style="font-size:18px;">🎓</span>
-                    </div>
+                    <img src="${siteUrl}/logo.png" alt="Notes4BtechCSE Logo" width="36" height="36" style="display:inline-block; vertical-align:middle; width:36px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,0.15);" />
                     <span style="display:inline-block; vertical-align:middle; font-size:15px; font-weight:700; color:#FFFFFF; margin-left:10px; letter-spacing:-0.3px;">
                       Notes4BtechCSE (N4BC)
                     </span>

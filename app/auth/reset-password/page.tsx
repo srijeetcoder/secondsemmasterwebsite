@@ -342,8 +342,12 @@ function ResetPasswordContent() {
               className="glass-strong rounded-2xl px-6 pb-7 pt-7 sm:px-7 border border-white/10 bg-[#0e1113]/95 shadow-2xl"
             >
               <div className="mb-6">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 shadow-[0_0_15px_rgba(74,166,168,0.15)]">
-                  <Sparkles className="h-5 w-5 text-[#4AA6A8]" />
+                <div className="mb-3 flex items-center gap-2.5">
+                  <img
+                    src="/logo.png"
+                    alt="Notes4BtechCSE Logo"
+                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
+                  />
                 </div>
                 <h1 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Reset Your Password
@@ -543,8 +547,12 @@ function ResetPasswordContent() {
               className="glass-strong rounded-2xl px-6 pb-7 pt-7 sm:px-7 border border-white/10 bg-[#0e1113]/95 shadow-2xl"
             >
               <div className="mb-6">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 shadow-[0_0_15px_rgba(74,166,168,0.15)]">
-                  <Sparkles className="h-5 w-5 text-[#4AA6A8]" />
+                <div className="mb-3 flex items-center gap-2.5">
+                  <img
+                    src="/logo.png"
+                    alt="Notes4BtechCSE Logo"
+                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
+                  />
                 </div>
                 <h1 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Set a New Password

@@ -250,10 +250,12 @@ function HubClientInner() {
             className="relative w-full flex items-center justify-between gap-3 sm:gap-4 py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl navbar shadow-2xl backdrop-blur-xl border bg-[#0D0F10]/40 border-white/[0.06]"
         >
           {/* Logo & Brand */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            <span className="flex items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 h-8 w-8 sm:h-9 sm:w-9 shrink-0">
-              <GraduationCap className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-[#4AA6A8]" />
-            </span>
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <img
+              src="/logo.png"
+              alt="Notes4BtechCSE Logo"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
+            />
             <span className="hidden xs:block whitespace-nowrap text-sm font-semibold tracking-tight text-[#E8E8E5]">
               Notes4BtechCSE
             </span>
@@ -452,12 +454,24 @@ function HubClientInner() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
+            {/* Logo Badge */}
+            <div className="mx-auto mb-5 relative flex items-center justify-center">
+              <div className="relative">
+                <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-[#4AA6A8]/40 via-[#e05615]/30 to-[#6D9B82]/40 opacity-40 blur-xl animate-pulse" />
+                <img
+                  src="/logo.png"
+                  alt="Notes4BtechCSE Logo"
+                  className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border border-white/15 shadow-2xl ring-1 ring-white/10"
+                />
+              </div>
+            </div>
+
             <span className="inline-flex items-center gap-2 rounded-full border border-[#242728] bg-[#0D0F10] px-3 py-1 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.14em] text-[#929694]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#4AA6A8] animate-pulse-ring shrink-0" />
               Second Semester
             </span>
 
-            <div className="mt-5 sm:mt-6 flex flex-col items-center justify-center">
+            <div className="mt-4 sm:mt-5 flex flex-col items-center justify-center">
               <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight text-[#E8E8E5] drop-shadow-sm select-none">
                 Notes4BtechCSE
               </h1>

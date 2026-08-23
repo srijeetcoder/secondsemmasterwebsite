@@ -608,8 +608,15 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               transition={{ duration: 0.2 }}
             >
               <div className="mb-5">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 shadow-[0_0_15px_rgba(74,166,168,0.15)]">
-                  <Sparkles className="h-5 w-5 text-[#4AA6A8]" />
+                <div className="mb-3 flex items-center gap-2.5">
+                  <img
+                    src="/logo.png"
+                    alt="Notes4BtechCSE Logo"
+                    className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl object-cover border border-white/10 shadow-[0_0_15px_rgba(74,166,168,0.25)] ring-1 ring-white/10"
+                  />
+                  <span className="text-xs font-mono font-semibold tracking-wider text-[#4AA6A8] uppercase">
+                    Notes4BtechCSE
+                  </span>
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   {mode === 'signin' ? 'Welcome back' : 'Create your account'}
@@ -888,8 +895,12 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               transition={{ duration: 0.2 }}
             >
               <div className="mb-6">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10">
-                  <Mail className="h-5 w-5 text-[#4AA6A8]" />
+                <div className="mb-3 flex items-center gap-2.5">
+                  <img
+                    src="/logo.png"
+                    alt="Notes4BtechCSE Logo"
+                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
+                  />
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Verify your email
@@ -984,8 +995,12 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               transition={{ duration: 0.25 }}
               className="py-6 text-center"
             >
-              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#6D9B82]/25 bg-[#6D9B82]/10 shadow-[0_0_20px_rgba(109,155,130,0.2)]">
-                <CheckCircle2 className="h-7 w-7 text-[#6D9B82]" />
+              <div className="mb-4 inline-flex items-center justify-center">
+                <img
+                  src="/logo.png"
+                  alt="Notes4BtechCSE Logo"
+                  className="h-14 w-14 rounded-2xl object-cover border border-[#6D9B82]/30 shadow-[0_0_25px_rgba(109,155,130,0.3)] ring-1 ring-white/10"
+                />
               </div>
               <h2 className="mb-2 text-xl font-semibold tracking-tight text-[#E8E8E5]">
                 Registration Successful!
@@ -1009,8 +1024,12 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               transition={{ duration: 0.2 }}
             >
               <div className="mb-5">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#A58A55]/25 bg-[#A58A55]/10 shadow-[0_0_15px_rgba(165,138,85,0.15)]">
-                  <KeyRound className="h-5 w-5 text-[#A58A55]" />
+                <div className="mb-3 flex items-center gap-2.5">
+                  <img
+                    src="/logo.png"
+                    alt="Notes4BtechCSE Logo"
+                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
+                  />
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Forgot Password?

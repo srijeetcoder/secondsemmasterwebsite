@@ -159,6 +159,28 @@ export function useAuth() {
         localStorage.setItem(DEVICE_SESSION_KEY, newLocalId);
         claimActiveDeviceSession(nextSession.user);
         setSessionConflict(false);
+
+        // Dispatch Sign-In toast for Google OAuth and all sign-in events
+        if (typeof window !== 'undefined') {
+          const sessionToken = nextSession.access_token ? nextSession.access_token.slice(-16) : nextSession.user.id;
+          const sessionSeenKey = `__AUTH_TOAST_SEEN_${sessionToken}__`;
+          if (!sessionStorage.getItem(sessionSeenKey)) {
+            sessionStorage.setItem(sessionSeenKey, '1');
+            const provider = nextSession.user.app_metadata?.provider;
+            const isGoogle = provider === 'google' || nextSession.user.identities?.some(id => id.provider === 'google');
+            window.dispatchEvent(
+              new CustomEvent('auth-toast', {
+                detail: {
+                  type: 'success',
+                  title: 'Sign In Successful!',
+                  message: isGoogle
+                    ? 'Signed in with Google. All subject portals are unlocked.'
+                    : 'Welcome back! All semester subject portals are unlocked.',
+                },
+              })
+            );
+          }
+        }
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem(DEVICE_SESSION_KEY);
       }

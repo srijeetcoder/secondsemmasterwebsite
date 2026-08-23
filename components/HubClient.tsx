@@ -664,7 +664,7 @@ function HubClientInner() {
         )}
       </AnimatePresence>
 
-      {/* ── Bottom Right Floating Notification Toast ── */}
+      {/* ── Bottom Right Floating Notification Toast (Pure Transparent) ── */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -672,19 +672,19 @@ function HubClientInner() {
             animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, x: 16, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-3.5 px-5 py-4 rounded-2xl border border-[#4AA6A8]/40 bg-[#0e1113]/95 text-[#E8E8E5] shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-2xl max-w-sm w-[calc(100vw-3rem)] sm:w-auto"
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3.5 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl border border-white/20 bg-transparent text-[#E8E8E5] max-w-sm w-[calc(100vw-3rem)] sm:w-auto shadow-none"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#4AA6A8]/30 bg-[#4AA6A8]/15 text-[#4AA6A8] shadow-[0_0_20px_rgba(74,166,168,0.25)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4AA6A8]/40 bg-transparent text-[#4AA6A8]">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="text-xs sm:text-sm font-semibold text-[#E8E8E5] leading-tight">{toast.title}</h4>
-              <p className="text-[11px] sm:text-xs text-[#929694] mt-1 leading-snug">{toast.message}</p>
+              <h4 className="text-xs sm:text-sm font-semibold text-[#E8E8E5] leading-tight drop-shadow-sm">{toast.title}</h4>
+              <p className="text-[11px] sm:text-xs text-[#929694] mt-0.5 leading-snug drop-shadow-sm">{toast.message}</p>
             </div>
             <button
               onClick={() => setToast(null)}
               aria-label="Dismiss notification"
-              className="rounded-lg p-1.5 text-[#626766] hover:text-[#E8E8E5] hover:bg-white/5 transition cursor-pointer"
+              className="rounded-lg p-1.5 text-[#626766] hover:text-[#E8E8E5] bg-transparent transition cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>

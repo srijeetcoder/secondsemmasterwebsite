@@ -192,6 +192,19 @@ function ResetPasswordContent() {
       if (updateError) throw updateError;
 
       recordPasswordReset(email.trim());
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('auth-toast', {
+            detail: {
+              type: 'success',
+              title: 'Password Reset Successfully!',
+              message: 'Your password has been changed successfully.',
+            },
+          })
+        );
+      }
+
       setPhase('success');
       setTimeout(() => router.push('/'), 2200);
     } catch (err) {

@@ -265,6 +265,17 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
         if (data.session) {
           // Email confirmation disabled — user is already logged in.
           recordAccountCreation();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('auth-toast', {
+                detail: {
+                  type: 'success',
+                  title: 'Account Created Successfully!',
+                  message: 'Welcome to MAKAUT BUSTERS. You are now logged in.',
+                },
+              })
+            );
+          }
           onClose();
         } else {
           // Supabase sent a confirmation email (OTP).
@@ -296,6 +307,19 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
 
         // Reset failed attempt counter on successful login
         recordSuccessfulLogin(email.trim());
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('auth-toast', {
+              detail: {
+                type: 'success',
+                title: 'Sign In Successful!',
+                message: 'Welcome back! All semester subject portals are unlocked.',
+              },
+            })
+          );
+        }
+
         onClose();
       }
     } catch (err) {
@@ -469,6 +493,18 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
 
       // Record successful password reset into rate limiter
       recordPasswordReset(email.trim());
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('auth-toast', {
+            detail: {
+              type: 'success',
+              title: 'Password Reset Successfully!',
+              message: 'Your new password has been saved. You are now logged in.',
+            },
+          })
+        );
+      }
 
       switchMode('forgot-success');
       setTimeout(() => {

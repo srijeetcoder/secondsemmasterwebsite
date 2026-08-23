@@ -213,6 +213,18 @@ function HubClientInner() {
     closeAuth();
     if (process.env.NODE_ENV === 'development') setDevLogin(false);
     await supabase?.auth.signOut();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('auth-toast', {
+          detail: {
+            type: 'info',
+            title: 'Signed Out',
+            message: 'You have been safely signed out.',
+          },
+        })
+      );
+    }
   }
 
   return (
@@ -652,27 +664,27 @@ function HubClientInner() {
         )}
       </AnimatePresence>
 
-      {/* ── Registration & Auth Success Floating Bottom Toast ── */}
+      {/* ── Bottom Right Floating Notification Toast ── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3.5 px-5 py-3.5 rounded-2xl border border-[#4AA6A8]/40 bg-[#0e1113]/95 text-[#E8E8E5] shadow-2xl backdrop-blur-xl max-w-md w-[92vw] sm:w-auto"
+            initial={{ opacity: 0, y: 24, x: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, x: 16, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3.5 px-5 py-4 rounded-2xl border border-[#4AA6A8]/40 bg-[#0e1113]/95 text-[#E8E8E5] shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-2xl max-w-sm w-[calc(100vw-3rem)] sm:w-auto"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4AA6A8]/30 bg-[#4AA6A8]/15 text-[#4AA6A8] shadow-[0_0_15px_rgba(74,166,168,0.2)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#4AA6A8]/30 bg-[#4AA6A8]/15 text-[#4AA6A8] shadow-[0_0_20px_rgba(74,166,168,0.25)]">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="text-xs sm:text-sm font-semibold text-[#E8E8E5] leading-tight">{toast.title}</h4>
-              <p className="text-[11px] sm:text-xs text-[#929694] mt-0.5 leading-snug">{toast.message}</p>
+              <p className="text-[11px] sm:text-xs text-[#929694] mt-1 leading-snug">{toast.message}</p>
             </div>
             <button
               onClick={() => setToast(null)}
               aria-label="Dismiss notification"
-              className="rounded-lg p-1 text-[#626766] hover:text-[#E8E8E5] transition cursor-pointer"
+              className="rounded-lg p-1.5 text-[#626766] hover:text-[#E8E8E5] hover:bg-white/5 transition cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>

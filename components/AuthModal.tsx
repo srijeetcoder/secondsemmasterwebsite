@@ -609,11 +609,13 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
             >
               <div className="mb-5">
                 <div className="mb-3 flex items-center gap-2.5">
-                  <img
-                    src="/logo.png"
-                    alt="Notes4BtechCSE Logo"
-                    className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl object-cover border border-white/10 shadow-[0_0_15px_rgba(74,166,168,0.25)] ring-1 ring-white/10"
-                  />
+                  <div className="flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-sm">
+                    <img
+                      src="/logo.png"
+                      alt="Notes4BtechCSE Logo"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
                   <span className="text-xs font-mono font-semibold tracking-wider text-[#4AA6A8] uppercase">
                     Notes4BtechCSE
                   </span>
@@ -896,11 +898,13 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
             >
               <div className="mb-6">
                 <div className="mb-3 flex items-center gap-2.5">
-                  <img
-                    src="/logo.png"
-                    alt="Notes4BtechCSE Logo"
-                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
-                  />
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-sm">
+                    <img
+                      src="/logo.png"
+                      alt="Notes4BtechCSE Logo"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Verify your email
@@ -996,11 +1000,13 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               className="py-6 text-center"
             >
               <div className="mb-4 inline-flex items-center justify-center">
-                <img
-                  src="/logo.png"
-                  alt="Notes4BtechCSE Logo"
-                  className="h-14 w-14 rounded-2xl object-cover border border-[#6D9B82]/30 shadow-[0_0_25px_rgba(109,155,130,0.3)] ring-1 ring-white/10"
-                />
+                <div className="flex items-center justify-center h-14 w-14 rounded-2xl border border-[#6D9B82]/30 bg-white/[0.04] p-1.5 shadow-[0_0_25px_rgba(109,155,130,0.3)]">
+                  <img
+                    src="/logo.png"
+                    alt="Notes4BtechCSE Logo"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
               </div>
               <h2 className="mb-2 text-xl font-semibold tracking-tight text-[#E8E8E5]">
                 Registration Successful!
@@ -1025,11 +1031,13 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
             >
               <div className="mb-5">
                 <div className="mb-3 flex items-center gap-2.5">
-                  <img
-                    src="/logo.png"
-                    alt="Notes4BtechCSE Logo"
-                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
-                  />
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-sm">
+                    <img
+                      src="/logo.png"
+                      alt="Notes4BtechCSE Logo"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Forgot Password?

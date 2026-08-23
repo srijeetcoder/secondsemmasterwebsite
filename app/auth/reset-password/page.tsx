@@ -343,11 +343,13 @@ function ResetPasswordContent() {
             >
               <div className="mb-6">
                 <div className="mb-3 flex items-center gap-2.5">
-                  <img
-                    src="/logo.png"
-                    alt="Notes4BtechCSE Logo"
-                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
-                  />
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-sm">
+                    <img
+                      src="/logo.png"
+                      alt="Notes4BtechCSE Logo"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
                 </div>
                 <h1 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Reset Your Password
@@ -548,11 +550,13 @@ function ResetPasswordContent() {
             >
               <div className="mb-6">
                 <div className="mb-3 flex items-center gap-2.5">
-                  <img
-                    src="/logo.png"
-                    alt="Notes4BtechCSE Logo"
-                    className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow-md ring-1 ring-white/5"
-                  />
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-sm">
+                    <img
+                      src="/logo.png"
+                      alt="Notes4BtechCSE Logo"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
                 </div>
                 <h1 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
                   Set a New Password

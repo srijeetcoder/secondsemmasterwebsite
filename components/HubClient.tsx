@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, GraduationCap, Search, SearchX, X, BookOpen, FileText, ExternalLink, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Search, SearchX, X, BookOpen, FileText, ExternalLink, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -37,6 +37,19 @@ function HubClientInner() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [devSectionOpen, setDevSectionOpen] = useState(false);
+  const [toast, setToast] = useState<{ title: string; message: string; type?: 'success' | 'info' } | null>(null);
+
+  // Listen for global auth toasts (e.g. registration success)
+  useEffect(() => {
+    const handleToast = (e: any) => {
+      if (e.detail) {
+        setToast(e.detail);
+        setTimeout(() => setToast(null), 4500);
+      }
+    };
+    window.addEventListener('auth-toast', handleToast);
+    return () => window.removeEventListener('auth-toast', handleToast);
+  }, []);
 
   const handleToggleDevSection = () => {
     setDevSectionOpen((prev) => {
@@ -636,6 +649,34 @@ function HubClientInner() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Registration & Auth Success Floating Bottom Toast ── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3.5 px-5 py-3.5 rounded-2xl border border-[#4AA6A8]/40 bg-[#0e1113]/95 text-[#E8E8E5] shadow-2xl backdrop-blur-xl max-w-md w-[92vw] sm:w-auto"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4AA6A8]/30 bg-[#4AA6A8]/15 text-[#4AA6A8] shadow-[0_0_15px_rgba(74,166,168,0.2)]">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xs sm:text-sm font-semibold text-[#E8E8E5] leading-tight">{toast.title}</h4>
+              <p className="text-[11px] sm:text-xs text-[#929694] mt-0.5 leading-snug">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              aria-label="Dismiss notification"
+              className="rounded-lg p-1 text-[#626766] hover:text-[#E8E8E5] transition cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

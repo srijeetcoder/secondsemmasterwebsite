@@ -23,9 +23,12 @@ import {
   recordAccountCreation,
   checkPasswordResetLimit,
   recordPasswordReset,
+  checkLoginLockout,
+  recordFailedLoginAttempt,
+  recordSuccessfulLogin,
 } from '@/lib/rateLimiter';
 
-type Mode = 'signin' | 'signup' | 'otp' | 'forgot' | 'forgot-otp' | 'forgot-success';
+type Mode = 'signin' | 'signup' | 'otp' | 'signup-success' | 'forgot' | 'forgot-otp' | 'forgot-success';
 
 type Props = {
   open: boolean;
@@ -271,8 +274,28 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
         }
       } else {
         // mode === 'signin'
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) throw signInError;
+        // Check if account is locked due to 5 consecutive failed password attempts
+        const lockoutStatus = checkLoginLockout(email);
+        if (lockoutStatus.locked) {
+          throw new Error(
+            lockoutStatus.errorMessage ||
+              'Account temporarily locked for 15 minutes due to 5 failed password attempts.'
+          );
+        }
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (signInError) {
+          // Record failed password attempt & enforce 15-minute lock if reaching 5
+          const failure = recordFailedLoginAttempt(email.trim());
+          throw new Error(failure.errorMessage);
+        }
+
+        // Reset failed attempt counter on successful login
+        recordSuccessfulLogin(email.trim());
         onClose();
       }
     } catch (err) {
@@ -306,7 +329,23 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       
       // Successfully created and activated account
       recordAccountCreation();
-      onClose();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('auth-toast', {
+            detail: {
+              type: 'success',
+              title: 'Registration Successful!',
+              message: 'Welcome to MAKAUT BUSTERS. All subject portals are now unlocked.',
+            },
+          })
+        );
+      }
+
+      switchMode('signup-success');
+      setTimeout(() => {
+        onClose();
+      }, 2200);
     } catch (err) {
       setError(sanitizeError(err, 'Invalid or expired code. Please try again.'));
     } finally {
@@ -895,6 +934,31 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                   )}
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
                 </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── SIGNUP SUCCESS ────────────────────────────────────────── */}
+          {mode === 'signup-success' && (
+            <motion.div
+              key="signup-success"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="py-6 text-center"
+            >
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#6D9B82]/25 bg-[#6D9B82]/10 shadow-[0_0_20px_rgba(109,155,130,0.2)]">
+                <CheckCircle2 className="h-7 w-7 text-[#6D9B82]" />
+              </div>
+              <h2 className="mb-2 text-xl font-semibold tracking-tight text-[#E8E8E5]">
+                Registration Successful!
+              </h2>
+              <p className="text-sm text-[#929694] mb-5">
+                Welcome to MAKAUT BUSTERS. Your account is verified and ready.
+              </p>
+              <div className="flex justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-[#4AA6A8]" />
               </div>
             </motion.div>
           )}

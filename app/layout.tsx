@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     shortcut: '/favicon.png',
     apple: '/logo.png',
   },
+  verification: {
+    google: '2ead2b84c193dfc9',
+  },
 };
 
 export const viewport: Viewport = {

@@ -271,7 +271,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 detail: {
                   type: 'success',
                   title: 'Account Created Successfully!',
-                  message: 'Welcome to MAKAUT BUSTERS. You are now logged in.',
+                  message: 'Welcome to Notes4BtechCSE (N4BC). You are now logged in.',
                 },
               })
             );
@@ -360,7 +360,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
             detail: {
               type: 'success',
               title: 'Registration Successful!',
-              message: 'Welcome to MAKAUT BUSTERS. All subject portals are now unlocked.',
+              message: 'Welcome to Notes4BtechCSE (N4BC). All subject portals are now unlocked.',
             },
           })
         );
@@ -991,7 +991,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 Registration Successful!
               </h2>
               <p className="text-sm text-[#929694] mb-5">
-                Welcome to MAKAUT BUSTERS. Your account is verified and ready.
+                Welcome to Notes4BtechCSE (N4BC). Your account is verified and ready.
               </p>
               <div className="flex justify-center">
                 <Loader2 className="h-5 w-5 animate-spin text-[#4AA6A8]" />

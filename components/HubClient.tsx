@@ -255,7 +255,7 @@ function HubClientInner() {
               <GraduationCap className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-[#4AA6A8]" />
             </span>
             <span className="hidden xs:block whitespace-nowrap text-sm font-semibold tracking-tight text-[#E8E8E5]">
-              MAKAUT BUSTERS
+              Notes4BtechCSE
             </span>
           </div>
 
@@ -457,10 +457,13 @@ function HubClientInner() {
               Second Semester
             </span>
 
-            <div className="mt-5 sm:mt-6 flex justify-center">
+            <div className="mt-5 sm:mt-6 flex flex-col items-center justify-center">
               <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight text-[#E8E8E5] drop-shadow-sm select-none">
-                MAKAUT BUSTERS
+                Notes4BtechCSE
               </h1>
+              <span className="mt-1 text-xs sm:text-sm font-semibold tracking-wider text-[#4AA6A8] uppercase">
+                (N4BC)
+              </span>
             </div>
 
             <p className="mx-auto mt-4 sm:mt-5 max-w-xs xs:max-w-sm sm:max-w-xl text-sm sm:text-base leading-relaxed text-[#929694]">
@@ -528,7 +531,7 @@ function HubClientInner() {
 
         <footer className="mt-10 flex flex-col items-center gap-2 text-center px-4">
           <p className="text-[11px] sm:text-xs text-[#626766]">
-            MAKAUT BUSTERS · single sign-on across four notes sites
+            Notes4BtechCSE (N4BC) · single sign-on across four notes sites
           </p>
           <p className="text-[10px] sm:text-[11px] text-[#626766]">
             Sessions are issued and validated by Supabase Auth.

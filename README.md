@@ -1,18 +1,18 @@
-# MAKAUT BUSTERS
+# Notes4BtechCSE (N4BC)
 
 ## About Me
 
 Hello, I am Srijeet Chatterjee, a second year B.Tech student in Computer Science and Engineering at Techno Main Salt Lake, Kolkata.
 
-I built MAKAUT BUSTERS as a student-focused ecosystem for organizing study materials, university information, notes, practical resources, and academic references for students under MAKAUT.
+I built **Notes4BtechCSE (N4BC)** as a student-focused ecosystem for organizing study materials, university information, notes, practical resources, and academic references for students under MAKAUT.
 
 The goal is simple: make academic resources easier to find, easier to understand, and easier to access.
 
 ---
 
-## About MAKAUT BUSTERS
+## About Notes4BtechCSE (N4BC)
 
-MAKAUT BUSTERS is a collection of interconnected academic websites designed around different subjects and study requirements.
+**Notes4BtechCSE (N4BC)** is a collection of interconnected academic websites designed around different subjects and study requirements.
 
 Instead of placing every subject into one large application, each subject has its own focused study portal. The portals share a common authentication and session system, allowing students to move between them without repeatedly signing in.
 
@@ -37,7 +37,7 @@ Students often spend more time searching for the right material than studying it
 
 University syllabi, classroom notes, PDFs, practical records, previous questions, and external resources are often scattered across different platforms.
 
-MAKAUT BUSTERS brings these resources into a structured environment built specifically around the academic requirements of MAKAUT students.
+**Notes4BtechCSE (N4BC)** brings these resources into a structured environment built specifically around the academic requirements of MAKAUT students.
 
 The project is also an opportunity to experiment with modern web development, authentication architecture, database design, responsive interfaces, and cross-application communication.
 
@@ -74,27 +74,28 @@ Clean dark frosted glass aesthetic crafted for desktop, tablet, and mobile scree
 ### Backend & Infrastructure
 * **Authentication:** Supabase Auth (SSO / OAuth / Token Handoff)
 * **Database:** PostgreSQL (Supabase with RLS & Realtime)
-* **Deployment:** Vercel Edge
+* **Email & Notifications:** Resend SMTP & REST API
+* **Deployment:** Vercel Edge & GitHub Pages
 
 ---
 
 ## Architecture
 
-MAKAUT BUSTERS follows a multi-portal architecture:
+Notes4BtechCSE (N4BC) follows a multi-portal architecture:
 
 ```text
-                    MAKAUT BUSTERS (Central Hub)
-                                |
-                   Shared Authentication Layer
-                                |
-        +-----------------------+-----------------------+
-        |                       |                       |
-   Programming             Chemistry               Mathematics
-     Portal                  Portal                  Portal
-  (ESCS 201)              (BSCH 201)               (BSM 201)
-        |
-   Laboratory Portal
-  (BSCH 291 Practical)
+                 Notes4BtechCSE (N4BC - Central Hub)
+                                 |
+                    Shared Authentication Layer
+                                 |
+         +-----------------------+-----------------------+
+         |                       |                       |
+    Programming             Chemistry               Mathematics
+      Portal                  Portal                  Portal
+   (ESCS 201)              (BSCH 201)               (BSM 201)
+         |
+    Laboratory Portal
+   (BSCH 291 Practical)
 ```
 
 Each portal remains independently deployable while participating in the larger ecosystem.
@@ -119,7 +120,7 @@ The initial focus is B.Tech Computer Science and Engineering coursework, structu
 
 ## Current Status
 
-MAKAUT BUSTERS is an actively developed student project. Current work focuses on expanding academic resources, refining cross-portal synchronization, and enhancing student study utilities.
+**Notes4BtechCSE (N4BC)** is an actively developed student project. Current work focuses on expanding academic resources, refining cross-portal synchronization, and enhancing student study utilities.
 
 ### Future Plans
 * More MAKAUT subjects
@@ -144,6 +145,6 @@ MAKAUT BUSTERS is an actively developed student project. Current work focuses on
 
 ## Built For Students
 
-MAKAUT BUSTERS is made for students who want their academic resources organized in one connected ecosystem.
+**Notes4BtechCSE (N4BC)** is made for students who want their academic resources organized in one connected ecosystem.
 
 *Study. Practice. Build. Repeat.*

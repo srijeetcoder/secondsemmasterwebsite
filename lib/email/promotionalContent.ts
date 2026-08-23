@@ -25,7 +25,7 @@ export function generatePromotionalSubject(notices: NoticeItem[]): string {
     return `📢 MAKAUT Update & Study Digest: ${latestNotice}...`;
   }
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `📚 Your Semester Study Digest (${dateStr}) — MAKAUT BUSTERS`;
+  return `📚 Your Semester Study Digest (${dateStr}) — Notes4BtechCSE (N4BC)`;
 }
 
 /** Generate the complete responsive dark-mode HTML email template */
@@ -68,7 +68,7 @@ export function generatePromotionalEmailHtml(params: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MAKAUT BUSTERS Study Digest</title>
+  <title>Notes4BtechCSE Study Digest</title>
 </head>
 <body style="margin:0; padding:0; background-color:#090A0B; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#E8E8E5;">
   <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#090A0B; padding:30px 12px;">
@@ -92,7 +92,7 @@ export function generatePromotionalEmailHtml(params: {
                       <span style="font-size:18px;">🎓</span>
                     </div>
                     <span style="display:inline-block; vertical-align:middle; font-size:15px; font-weight:700; color:#FFFFFF; margin-left:10px; letter-spacing:-0.3px;">
-                      MAKAUT BUSTERS
+                      Notes4BtechCSE (N4BC)
                     </span>
                   </td>
                   <td align="right" style="font-size:11px; color:#626766; font-weight:500;">
@@ -183,10 +183,10 @@ export function generatePromotionalEmailHtml(params: {
           <tr>
             <td style="background-color:#0B0D0E; padding:22px 32px; text-align:center; border-top:1px solid rgba(255,255,255,0.04);">
               <p style="margin:0; font-size:12px; color:#626766; line-height:1.5;">
-                You received this study digest because you registered on MAKAUT BUSTERS.
+                You received this study digest because you registered on Notes4BtechCSE (N4BC).
               </p>
               <p style="margin:8px 0 0 0; font-size:11px; color:#444847;">
-                &copy; 2026 MAKAUT BUSTERS &middot; <a href="${siteUrl}" style="color:#4AA6A8; text-decoration:none;">notes4btechcse.cc.cd</a>
+                &copy; 2026 Notes4BtechCSE &middot; <a href="${siteUrl}" style="color:#4AA6A8; text-decoration:none;">notes4btechcse.cc.cd</a>
               </p>
             </td>
           </tr>

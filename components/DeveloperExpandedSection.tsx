@@ -136,7 +136,7 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
                       <span>•</span>
                       <span className="text-emerald-400 flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                        MAKAUT BUSTERS Lead
+                        Notes4BtechCSE Lead
                       </span>
                     </div>
                   </div>
@@ -217,7 +217,7 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
                         Hello, I am <strong>Srijeet Chatterjee</strong>, a second year B.Tech student in Computer Science and Engineering at Techno Main Salt Lake, Kolkata.
                       </p>
                       <p className="text-xs sm:text-sm leading-relaxed text-slate-200 mt-2">
-                        I built <strong>MAKAUT BUSTERS</strong> as a student-focused ecosystem for organizing study materials, university information, notes, practical resources, and academic references for students under MAKAUT.
+                        I built <strong>Notes4BtechCSE (N4BC)</strong> as a student-focused ecosystem for organizing study materials, university information, notes, practical resources, and academic references for students under MAKAUT.
                       </p>
                     </div>
 
@@ -227,10 +227,10 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
 
                     <div className="border-t border-white/10 pt-3">
                       <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-2">
-                        About MAKAUT BUSTERS
+                        About Notes4BtechCSE (N4BC)
                       </h4>
                       <p className="text-xs sm:text-sm leading-relaxed text-slate-300">
-                        MAKAUT BUSTERS is a collection of interconnected academic websites designed around different subjects and study requirements. Instead of placing every subject into one large application, each subject has its own focused study portal. The portals share a common authentication and session system, allowing students to move between them without repeatedly signing in.
+                        Notes4BtechCSE (N4BC) is a collection of interconnected academic websites designed around different subjects and study requirements. Instead of placing every subject into one large application, each subject has its own focused study portal. The portals share a common authentication and session system, allowing students to move between them without repeatedly signing in.
                       </p>
                     </div>
 
@@ -239,7 +239,7 @@ export function DeveloperExpandedSection({ open, onClose }: DeveloperExpandedSec
                         Why I Built This
                       </h4>
                       <p className="text-xs sm:text-sm leading-relaxed text-slate-300">
-                        Students often spend more time searching for the right material than studying it. University syllabi, classroom notes, PDFs, practical records, previous questions, and external resources are often scattered across different platforms. MAKAUT BUSTERS brings these resources into a structured environment built specifically around the academic requirements of MAKAUT students.
+                        Students often spend more time searching for the right material than studying it. University syllabi, classroom notes, PDFs, practical records, previous questions, and external resources are often scattered across different platforms. Notes4BtechCSE (N4BC) brings these resources into a structured environment built specifically around the academic requirements of MAKAUT students.
                       </p>
                     </div>
 

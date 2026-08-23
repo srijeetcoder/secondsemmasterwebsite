@@ -10,8 +10,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'MAKAUT BUSTERS',
-  description: 'One portal for all your semester resources, powered by single sign-on.',
+  title: 'Notes4BtechCSE (N4BC)',
+  description: 'Notes4BtechCSE (N4BC) — One portal for all your semester resources, powered by single sign-on.',
 };
 
 export const viewport: Viewport = {

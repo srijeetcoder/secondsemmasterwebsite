@@ -222,7 +222,7 @@ export function AboutDeveloper({ onExpand, isExpanded = false }: AboutDeveloperP
                       Hello, I am <strong>Srijeet Chatterjee</strong>, a 2nd year B.Tech student in Computer Science and Engineering at Techno Main Salt Lake, Kolkata.
                     </p>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      I built <strong>MAKAUT BUSTERS</strong> as a student-focused study ecosystem with single sign-on across dedicated portals for programming, chemistry, and mathematics.
+                      I built <strong>Notes4BtechCSE (N4BC)</strong> as a student-focused study ecosystem with single sign-on across dedicated portals for programming, chemistry, and mathematics.
                     </p>
                   </div>
                 </div>

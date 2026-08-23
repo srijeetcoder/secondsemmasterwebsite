@@ -119,7 +119,7 @@ async function handlePromotionalCampaign(request: NextRequest) {
             Authorization: `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: 'MAKAUT BUSTERS <support@notes4btechcse.cc.cd>',
+            from: 'Notes4BtechCSE <support@notes4btechcse.cc.cd>',
             to: [student.email],
             subject: subject,
             html: html,

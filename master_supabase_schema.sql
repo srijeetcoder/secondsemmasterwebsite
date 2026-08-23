@@ -245,4 +245,19 @@ ALTER TABLE public.auth_rate_limits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow system insert for rate limits"
   ON public.auth_rate_limits FOR INSERT TO anon, authenticated WITH CHECK (true);
 
+-- 5. Promotional & Study Digest Campaign Logs
+CREATE TABLE IF NOT EXISTS public.promotional_campaign_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject TEXT NOT NULL,
+  recipients_count INT DEFAULT 0,
+  sent_count INT DEFAULT 0,
+  failed_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.promotional_campaign_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow read access for authenticated admins"
+  ON public.promotional_campaign_logs FOR SELECT TO authenticated USING (true);
+
 

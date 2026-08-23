@@ -5,6 +5,12 @@
   "devCommand": "next dev",
   "installCommand": "npm ci",
   "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/cron/promotional-email",
+      "schedule": "0 10 * * 1"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

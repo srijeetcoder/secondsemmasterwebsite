@@ -45,11 +45,12 @@ export async function adoptSessionFromHub() {
 const REDIRECT_SNIPPET = `Supabase Dashboard -> Authentication -> URL Configuration
 
 Site URL:
-  https://<your-hub-domain>
+  https://notes4btechcse.cc.cd
 
 Redirect URLs (add every one of these):
   http://localhost:3000/auth/callback
-  https://<your-hub-domain>/auth/callback
+  https://notes4btechcse.cc.cd/auth/callback
+  https://notes4btechcse.cc.cd/auth/reset-password
   https://cnotesbycsrijeet.vercel.app
   https://chem-notes-nhm8.vercel.app
   https://pracchem.vercel.app

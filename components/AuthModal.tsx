@@ -18,8 +18,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { setDevLogin } from '@/lib/useAuth';
+import {
+  checkAccountCreationLimit,
+  recordAccountCreation,
+  checkPasswordResetLimit,
+  recordPasswordReset,
+} from '@/lib/rateLimiter';
 
-type Mode = 'signin' | 'signup' | 'otp' | 'forgot' | 'forgot-sent';
+type Mode = 'signin' | 'signup' | 'otp' | 'forgot' | 'forgot-otp' | 'forgot-success';
 
 type Props = {
   open: boolean;
@@ -54,10 +60,6 @@ const COLLEGES = [
 
 /**
  * Shell: owns the backdrop, the Escape handler and the exit animation.
- *
- * The form itself lives in <AuthPanel />, which is mounted only while the
- * dialog is open — so every open starts from clean state without an effect
- * reaching in to reset it.
  */
 export function AuthModal({ open, onClose, supabase, reason }: Props) {
   useEffect(() => {
@@ -103,7 +105,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState<null | 'email' | 'google' | 'otp' | 'resend' | 'forgot' | 'dev'>(null);
+  const [busy, setBusy] = useState<null | 'email' | 'google' | 'otp' | 'resend' | 'forgot' | 'reset-save' | 'dev'>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -114,10 +116,16 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   const [year, setYear] = useState('');
   const [semester, setSemester] = useState('');
 
-  // OTP state
+  // OTP state (for signup OTP & forgot-password recovery OTP)
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Password reset specific fields
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -134,9 +142,9 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
     return () => clearInterval(id);
   }, [resendCooldown]);
 
-  // Focus first OTP box when entering OTP mode
+  // Focus first OTP box when entering OTP mode or forgot-otp mode
   useEffect(() => {
-    if (mode === 'otp') {
+    if (mode === 'otp' || mode === 'forgot-otp') {
       const t = setTimeout(() => otpRefs.current[0]?.focus(), 150);
       return () => clearTimeout(t);
     }
@@ -145,6 +153,8 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   function resetAll() {
     setEmail('');
     setPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
     setFullName('');
     setDob('');
     setCollege('');
@@ -164,9 +174,33 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   const redirectTo =
     typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
 
+  /* ── Password Strength Calculator ──────────────────────────────────────── */
+  function strengthLevel(pwd: string): 0 | 1 | 2 | 3 {
+    if (pwd.length === 0) return 0;
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd) || /[^A-Za-z0-9]/.test(pwd)) score++;
+    return score as 0 | 1 | 2 | 3;
+  }
+
+  const resetStrength = strengthLevel(newPassword);
+  const strengthLabel = ['', 'Weak', 'Fair', 'Strong'];
+  const strengthColor = ['', '#EA4335', '#FBBC05', '#6D9B82'];
+
   /* ── Google OAuth ─────────────────────────────────────────────────────── */
   async function handleGoogle() {
-    if (!supabase) return setError('Supabase is not configured yet — see the setup guide below.');
+    if (!supabase) return setError('Supabase is not configured yet.');
+
+    // Check account creation limit if in signup context
+    if (mode === 'signup') {
+      const creationLimit = checkAccountCreationLimit();
+      if (!creationLimit.allowed) {
+        setError(creationLimit.errorMessage || 'Account creation limit reached (Max 5 accounts per 15 days).');
+        return;
+      }
+    }
+
     setBusy('google');
     setError(null);
 
@@ -190,12 +224,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
   /* ── Sign-in / Sign-up submit ─────────────────────────────────────────── */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) return setError('Supabase is not configured yet — see the setup guide below.');
-
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-      setError('Only Gmail addresses (@gmail.com) are allowed.');
-      return;
-    }
+    if (!supabase) return setError('Supabase is not configured yet.');
 
     setBusy('email');
     setError(null);
@@ -203,6 +232,12 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
 
     try {
       if (mode === 'signup') {
+        // Enforce account creation limit: max 5 times every 15 days
+        const creationLimit = checkAccountCreationLimit();
+        if (!creationLimit.allowed) {
+          throw new Error(creationLimit.errorMessage || 'Account creation limit reached (Max 5 accounts per 15 days).');
+        }
+
         if (!fullName || !dob || !college || !year || !semester) {
           throw new Error('Please fill in all registration fields.');
         }
@@ -226,9 +261,10 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
 
         if (data.session) {
           // Email confirmation disabled — user is already logged in.
+          recordAccountCreation();
           onClose();
         } else {
-          // Supabase sent a confirmation email (OTP or magic link).
+          // Supabase sent a confirmation email (OTP).
           setOtp(['', '', '', '', '', '']);
           setResendCooldown(60);
           switchMode('otp');
@@ -240,13 +276,13 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
         onClose();
       }
     } catch (err) {
-      setError(sanitizeError(err, 'Something went wrong. Please try again.'));
+      setError(sanitizeError(err, 'Something went wrong. Please check your credentials and try again.'));
     } finally {
       setBusy(null);
     }
   }
 
-  /* ── OTP verification ─────────────────────────────────────────────────── */
+  /* ── Signup OTP verification ─────────────────────────────────────────── */
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return;
@@ -267,6 +303,9 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
         type: 'signup',
       });
       if (verifyError) throw verifyError;
+      
+      // Successfully created and activated account
+      recordAccountCreation();
       onClose();
     } catch (err) {
       setError(sanitizeError(err, 'Invalid or expired code. Please try again.'));
@@ -288,41 +327,143 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       });
       if (resendError) throw resendError;
       setResendCooldown(60);
-      setNotice('A new code has been sent to your email.');
+      setNotice('A new 6-digit verification code has been sent to your email.');
     } catch (err) {
-      setError(sanitizeError(err, 'Could not resend code.'));
+      setError(sanitizeError(err, 'Could not resend code. Please try again later.'));
     } finally {
       setBusy(null);
     }
   }
 
-  /* ── Forgot password ──────────────────────────────────────────────────── */
-  async function handleForgotPassword(e: React.FormEvent) {
+  /* ── Forgot Password: Step 1 -> Request OTP (Max 5 / hour) ────────────── */
+  async function handleSendForgotOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return setError('Supabase is not configured yet.');
 
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-      setError('Only Gmail addresses (@gmail.com) are allowed.');
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    // Rate Limit: max 5 times every 1 hour
+    const resetLimit = checkPasswordResetLimit(email.trim());
+    if (!resetLimit.allowed) {
+      setError(resetLimit.errorMessage || 'Password reset limit reached (Max 5 attempts per hour).');
       return;
     }
 
     setBusy('forgot');
     setError(null);
+    setNotice(null);
 
     try {
-      // redirectTo must point to a URL already whitelisted in Supabase's
-      // Redirect URLs list. We use /auth/callback which handles ?type=recovery
-      // by forwarding to /auth/reset-password.
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo:
-          typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback`
-            : undefined,
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectTo,
       });
+
       if (resetError) throw resetError;
-      switchMode('forgot-sent');
+
+      // Transition to OTP verification + new password mode
+      setOtp(['', '', '', '', '', '']);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setResendCooldown(60);
+      setNotice('A 6-digit password reset OTP has been sent to your email.');
+      switchMode('forgot-otp');
     } catch (err) {
-      setError(sanitizeError(err, 'Could not send reset email. Please try again later.'));
+      setError(sanitizeError(err, 'Could not send reset OTP. Please check your email and try again.'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /* ── Forgot Password: Step 2 -> Verify OTP & Update Password ─────────── */
+  async function handleVerifyForgotOtpAndReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+
+    // Rate limit check
+    const resetLimit = checkPasswordResetLimit(email.trim());
+    if (!resetLimit.allowed) {
+      setError(resetLimit.errorMessage || 'Password reset limit reached (Max 5 attempts per hour).');
+      return;
+    }
+
+    const token = otp.join('');
+    if (token.length < 6) {
+      setError('Please enter the complete 6-digit reset code.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setBusy('reset-save');
+    setError(null);
+    setNotice(null);
+
+    try {
+      // 1. Verify OTP with type: 'recovery' to establish recovery session
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token,
+        type: 'recovery',
+      });
+
+      if (verifyError) {
+        throw new Error('Invalid or expired OTP code. Please check your email or request a new code.');
+      }
+
+      // 2. Update to new password under the recovery session
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) throw updateError;
+
+      // Record successful password reset into rate limiter
+      recordPasswordReset(email.trim());
+
+      switchMode('forgot-success');
+      setTimeout(() => {
+        onClose();
+      }, 2200);
+    } catch (err) {
+      setError(sanitizeError(err, 'Could not reset password. Please verify the code and try again.'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /* ── Forgot Password: Resend OTP ──────────────────────────────────────── */
+  async function handleResendForgotOtp() {
+    if (!supabase || resendCooldown > 0) return;
+
+    const resetLimit = checkPasswordResetLimit(email.trim());
+    if (!resetLimit.allowed) {
+      setError(resetLimit.errorMessage || 'Password reset limit reached (Max 5 attempts per hour).');
+      return;
+    }
+
+    setBusy('resend');
+    setError(null);
+
+    try {
+      const { error: resendError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectTo,
+      });
+      if (resendError) throw resendError;
+      setResendCooldown(60);
+      setNotice('A fresh 6-digit reset code has been sent to your email.');
+    } catch (err) {
+      setError(sanitizeError(err, 'Could not resend OTP. Please try again later.'));
     } finally {
       setBusy(null);
     }
@@ -367,10 +508,10 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 12, scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-      className="glass-strong relative z-10 w-full max-w-md overflow-hidden rounded-2xl"
+      className="glass-strong relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-[#0e1113]/95 backdrop-blur-xl"
     >
       {/* Accent hairline */}
-      <div className="absolute inset-x-0 top-0 h-px bg-[#242728]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4AA6A8]/40 to-transparent" />
 
       <button
         onClick={onClose}
@@ -380,7 +521,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
         <X className="h-4 w-4" />
       </button>
 
-      <div className="px-6 pb-6 pt-7 sm:px-7">
+      <div className="px-6 pb-6 pt-7 sm:px-7 max-h-[90vh] overflow-y-auto">
         <AnimatePresence mode="wait" initial={false}>
           {/* ── SIGN-IN / SIGN-UP ──────────────────────────────────────── */}
           {(mode === 'signin' || mode === 'signup') && (
@@ -392,7 +533,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               transition={{ duration: 0.2 }}
             >
               <div className="mb-5">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 shadow-[0_0_15px_rgba(74,166,168,0.15)]">
                   <Sparkles className="h-5 w-5 text-[#4AA6A8]" />
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
@@ -400,8 +541,8 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 </h2>
                 <p className="mt-1 text-sm text-[#929694]">
                   {mode === 'signin'
-                    ? 'Sign in once — every notes site unlocks.'
-                    : 'One account covers all four semester subjects.'}
+                    ? 'Sign in once — every notes site unlocks seamlessly.'
+                    : 'One account covers all semester study portals & history.'}
                 </p>
               </div>
 
@@ -409,16 +550,17 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-[#A58A55]/20 bg-[#A58A55]/[0.07] px-3.5 py-2.5 text-sm text-[#A58A55]">
                   <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-[#A58A55]" />
                   <span>
-                    Sign in to open <span className="font-medium text-[#E8E8E5]">{reason}</span>.
+                    Sign in to access <span className="font-medium text-[#E8E8E5]">{reason}</span>.
                   </span>
                 </div>
               )}
 
-              {/* Google */}
+              {/* Google OAuth Button */}
               <button
+                type="button"
                 onClick={handleGoogle}
                 disabled={busy !== null}
-                className="btn-primary flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium border border-white/10 hover:border-white/20 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy === 'google' ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -441,13 +583,13 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                   ) : (
                     <span className="font-mono text-[10px] uppercase tracking-widest opacity-70">DEV</span>
                   )}
-                  Dev Login
+                  Dev Bypass Sign-in
                 </button>
               )}
 
               <div className="my-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-white/10" />
-                <span className="text-[11px] uppercase tracking-widest text-slate-500">
+                <span className="text-[11px] uppercase tracking-widest text-[#626766]">
                   or use email
                 </span>
                 <span className="h-px flex-1 bg-white/10" />
@@ -469,8 +611,8 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                       autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@gmail.com"
-                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-3 text-sm focus:outline-none"
+                      placeholder="your.email@example.com"
+                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-3 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#4AA6A8]/60 transition"
                     />
                   </div>
                 </div>
@@ -491,7 +633,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-10 text-sm focus:outline-none"
+                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-10 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#4AA6A8]/60 transition"
                     />
                     <button
                       type="button"
@@ -508,8 +650,10 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                     <div className="mt-1.5 text-right">
                       <button
                         type="button"
-                        onClick={() => switchMode('forgot')}
-                        className="text-xs text-[#929694] underline-offset-2 transition hover:text-[#E8E8E5] hover:underline"
+                        onClick={() => {
+                          switchMode('forgot');
+                        }}
+                        className="text-xs text-[#4AA6A8] hover:text-[#5ec2c4] transition hover:underline"
                       >
                         Forgot password?
                       </button>
@@ -529,7 +673,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                     >
                       <div>
                         <label htmlFor="auth-fullname" className="mb-1.5 block text-xs font-medium text-[#929694]">
-                          Full name
+                          Full Name
                         </label>
                         <input
                           id="auth-fullname"
@@ -538,7 +682,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Your Name"
-                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none"
+                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#4AA6A8]/60 transition"
                         />
                       </div>
 
@@ -552,7 +696,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                           required={mode === 'signup'}
                           value={dob}
                           onChange={(e) => setDob(e.target.value)}
-                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none [color-scheme:dark]"
+                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#4AA6A8]/60 transition [color-scheme:dark]"
                         />
                       </div>
 
@@ -565,7 +709,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                           required={mode === 'signup'}
                           value={college}
                           onChange={(e) => setCollege(e.target.value)}
-                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#0D0F10] border border-white/10 text-slate-200"
+                          className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#090A0B] border border-white/10 text-slate-200"
                         >
                           <option value="">Select your college</option>
                           {COLLEGES.map((clg) => (
@@ -584,7 +728,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                             required={mode === 'signup'}
                             value={year}
                             onChange={(e) => setYear(e.target.value)}
-                            className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#0D0F10] border border-white/10 text-slate-200"
+                            className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#090A0B] border border-white/10 text-slate-200"
                           >
                             <option value="">Select Year</option>
                             <option value="1st Year">1st Year</option>
@@ -603,7 +747,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                             required={mode === 'signup'}
                             value={semester}
                             onChange={(e) => setSemester(e.target.value)}
-                            className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#0D0F10] border border-white/10 text-slate-200"
+                            className="search-input w-full rounded-xl py-2.5 px-3 text-sm focus:outline-none bg-[#090A0B] border border-white/10 text-slate-200"
                           >
                             <option value="">Select Sem</option>
                             {Array.from({ length: 8 }, (_, i) => (
@@ -623,7 +767,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 <button
                   type="submit"
                   disabled={busy !== null}
-                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
                 >
                   {busy === 'email' && <Loader2 className="h-4 w-4 animate-spin" />}
                   {mode === 'signin' ? 'Sign in' : 'Create account'}
@@ -634,10 +778,11 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               <div className="mt-5 space-y-2 text-center text-sm">
                 {mode === 'signin' ? (
                   <p className="text-[#929694]">
-                    No account yet?{' '}
+                    Don&apos;t have an account?{' '}
                     <button
+                      type="button"
                       onClick={() => { resetAll(); switchMode('signup'); }}
-                      className="font-medium text-[#E8E8E5] underline transition hover:text-[#929694]"
+                      className="font-medium text-[#E8E8E5] underline transition hover:text-[#4AA6A8]"
                     >
                       Create one
                     </button>
@@ -646,8 +791,9 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                   <p className="text-[#929694]">
                     Already registered?{' '}
                     <button
+                      type="button"
                       onClick={() => { resetAll(); switchMode('signin'); }}
-                      className="font-medium text-[#E8E8E5] underline transition hover:text-[#929694]"
+                      className="font-medium text-[#E8E8E5] underline transition hover:text-[#4AA6A8]"
                     >
                       Sign in
                     </button>
@@ -657,7 +803,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
             </motion.div>
           )}
 
-          {/* ── OTP VERIFICATION ──────────────────────────────────────── */}
+          {/* ── SIGNUP OTP VERIFICATION ───────────────────────────────── */}
           {mode === 'otp' && (
             <motion.div
               key="otp"
@@ -671,12 +817,11 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                   <Mail className="h-5 w-5 text-[#4AA6A8]" />
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
-                  Check your email
+                  Verify your email
                 </h2>
                 <p className="mt-1 text-sm text-[#929694]">
-                  We sent a 6-digit code to{' '}
-                  <span className="font-medium text-[#E8E8E5]">{email}</span>. Enter it below to
-                  verify your account.
+                  We sent a 6-digit confirmation code to{' '}
+                  <span className="font-medium text-[#E8E8E5]">{email}</span>. Enter it below to activate your account.
                 </p>
               </div>
 
@@ -684,7 +829,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 {/* OTP boxes */}
                 <div>
                   <label className="mb-3 block text-xs font-medium text-[#929694]">
-                    Verification code
+                    6-Digit Verification Code
                   </label>
                   <div
                     className="flex gap-2 justify-between"
@@ -704,8 +849,9 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                         onKeyDown={(e) => handleOtpKeyDown(i, e)}
                         className={`
                           search-input h-12 w-full rounded-xl text-center text-lg font-semibold
-                          tracking-widest focus:outline-none transition-all duration-150
-                          ${digit ? 'border-[#4AA6A8]/60 text-[#4AA6A8]' : 'text-[#E8E8E5]'}
+                          tracking-widest focus:outline-none transition-all duration-150 bg-[#090A0B]/80
+                          border border-white/10
+                          ${digit ? 'border-[#4AA6A8] text-[#4AA6A8] shadow-[0_0_10px_rgba(74,166,168,0.2)]' : 'text-[#E8E8E5]'}
                         `}
                         aria-label={`Digit ${i + 1}`}
                       />
@@ -718,16 +864,17 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 <button
                   type="submit"
                   disabled={busy === 'otp' || otp.join('').length < 6}
-                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
                 >
                   {busy === 'otp' && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Verify account
+                  Verify & Activate
                 </button>
               </form>
 
               {/* Resend + back */}
               <div className="mt-5 flex items-center justify-between text-sm">
                 <button
+                  type="button"
                   onClick={() => { resetAll(); switchMode('signup'); }}
                   className="flex items-center gap-1.5 text-[#929694] transition hover:text-[#E8E8E5]"
                 >
@@ -736,9 +883,10 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleResendOtp}
                   disabled={busy === 'resend' || resendCooldown > 0}
-                  className="flex items-center gap-1.5 text-[#929694] transition hover:text-[#E8E8E5] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-[#4AA6A8] transition hover:text-[#5ec2c4] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy === 'resend' ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -751,7 +899,7 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
             </motion.div>
           )}
 
-          {/* ── FORGOT PASSWORD ────────────────────────────────────────── */}
+          {/* ── FORGOT PASSWORD: STEP 1 (ENTER EMAIL) ───────────────────── */}
           {mode === 'forgot' && (
             <motion.div
               key="forgot"
@@ -761,21 +909,21 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
               transition={{ duration: 0.2 }}
             >
               <div className="mb-5">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#A58A55]/25 bg-[#A58A55]/10">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#A58A55]/25 bg-[#A58A55]/10 shadow-[0_0_15px_rgba(165,138,85,0.15)]">
                   <KeyRound className="h-5 w-5 text-[#A58A55]" />
                 </div>
                 <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
-                  Reset your password
+                  Forgot Password?
                 </h2>
                 <p className="mt-1 text-sm text-[#929694]">
-                  Enter your Gmail address and we&apos;ll send you a reset link.
+                  Enter your registered email. If it exists in our system, we&apos;ll send you a 6-digit OTP code to reset your password.
                 </p>
               </div>
 
-              <form onSubmit={handleForgotPassword} className="space-y-4">
+              <form onSubmit={handleSendForgotOtp} className="space-y-4">
                 <div>
                   <label htmlFor="forgot-email" className="mb-1.5 block text-xs font-medium text-[#929694]">
-                    Email address
+                    Registered Email
                   </label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626766]" />
@@ -787,8 +935,8 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                       autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@gmail.com"
-                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-3 text-sm focus:outline-none"
+                      placeholder="your.email@example.com"
+                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-3 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#A58A55]/60 transition"
                     />
                   </div>
                 </div>
@@ -798,55 +946,239 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
                 <button
                   type="submit"
                   disabled={busy === 'forgot'}
-                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
                 >
                   {busy === 'forgot' && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Send reset link
+                  Send Reset OTP
                 </button>
               </form>
 
               <div className="mt-5 text-center text-sm">
                 <button
+                  type="button"
                   onClick={() => switchMode('signin')}
                   className="flex items-center gap-1.5 text-[#929694] transition hover:text-[#E8E8E5] mx-auto"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  Back to sign in
+                  Back to Sign In
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* ── FORGOT PASSWORD — SENT ─────────────────────────────────── */}
-          {mode === 'forgot-sent' && (
+          {/* ── FORGOT PASSWORD: STEP 2 (ENTER OTP & NEW PASSWORD) ────────── */}
+          {mode === 'forgot-otp' && (
             <motion.div
-              key="forgot-sent"
+              key="forgot-otp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-5">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#4AA6A8]/25 bg-[#4AA6A8]/10 shadow-[0_0_15px_rgba(74,166,168,0.15)]">
+                  <KeyRound className="h-5 w-5 text-[#4AA6A8]" />
+                </div>
+                <h2 className="text-xl font-semibold tracking-tight text-[#E8E8E5]">
+                  Enter OTP & New Password
+                </h2>
+                <p className="mt-1 text-sm text-[#929694]">
+                  Enter the 6-digit OTP sent to <span className="font-medium text-[#E8E8E5]">{email}</span> and choose a new password.
+                </p>
+              </div>
+
+              <form onSubmit={handleVerifyForgotOtpAndReset} className="space-y-4">
+                {/* 6-Digit OTP Box */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-[#929694]">
+                    6-Digit OTP Code
+                  </label>
+                  <div
+                    className="flex gap-2 justify-between"
+                    onPaste={handleOtpPaste}
+                  >
+                    {otp.map((digit, i) => (
+                      <input
+                        key={i}
+                        ref={(el) => { otpRefs.current[i] = el; }}
+                        id={`forgot-otp-digit-${i}`}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(i, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                        className={`
+                          search-input h-11 w-full rounded-xl text-center text-lg font-semibold
+                          tracking-widest focus:outline-none transition-all duration-150 bg-[#090A0B]/80
+                          border border-white/10
+                          ${digit ? 'border-[#4AA6A8] text-[#4AA6A8] shadow-[0_0_10px_rgba(74,166,168,0.2)]' : 'text-[#E8E8E5]'}
+                        `}
+                        aria-label={`Digit ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label
+                    htmlFor="reset-new-password"
+                    className="mb-1.5 block text-xs font-medium text-[#929694]"
+                  >
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626766]" />
+                    <input
+                      id="reset-new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-10 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#4AA6A8]/60 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((v) => !v)}
+                      aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:text-[#929694]"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  {/* Strength bar */}
+                  {newPassword.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex gap-1 mb-1">
+                        {[1, 2, 3].map((lvl) => (
+                          <div
+                            key={lvl}
+                            className="h-1 flex-1 rounded-full transition-all duration-300"
+                            style={{
+                              backgroundColor:
+                                resetStrength >= lvl ? strengthColor[resetStrength] : 'rgba(255,255,255,0.08)',
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <p
+                        className="text-[11px] font-medium"
+                        style={{ color: strengthColor[resetStrength] }}
+                      >
+                        {strengthLabel[resetStrength]}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm New Password */}
+                <div>
+                  <label
+                    htmlFor="reset-confirm-password"
+                    className="mb-1.5 block text-xs font-medium text-[#929694]"
+                  >
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626766]" />
+                    <input
+                      id="reset-confirm-password"
+                      type={showConfirmNewPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="new-password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="search-input w-full rounded-xl py-2.5 pl-10 pr-10 text-sm focus:outline-none bg-[#090A0B]/80 border border-white/10 text-[#E8E8E5] focus:border-[#4AA6A8]/60 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmNewPassword((v) => !v)}
+                      aria-label={showConfirmNewPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#626766] transition hover:text-[#929694]"
+                    >
+                      {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  {confirmNewPassword.length > 0 && (
+                    <p
+                      className="mt-1.5 text-[11px] font-medium"
+                      style={{ color: confirmNewPassword === newPassword ? '#6D9B82' : '#EA4335' }}
+                    >
+                      {confirmNewPassword === newPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                    </p>
+                  )}
+                </div>
+
+                <FeedbackBanner error={error} notice={notice} />
+
+                <button
+                  type="submit"
+                  disabled={busy === 'reset-save' || otp.join('').length < 6 || !newPassword || newPassword !== confirmNewPassword}
+                  className="btn-contrast flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
+                >
+                  {busy === 'reset-save' && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Verify OTP & Update Password
+                </button>
+              </form>
+
+              {/* Resend & Back options */}
+              <div className="mt-5 flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  className="flex items-center gap-1.5 text-[#929694] transition hover:text-[#E8E8E5]"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Change Email
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendForgotOtp}
+                  disabled={busy === 'resend' || resendCooldown > 0}
+                  className="flex items-center gap-1.5 text-[#4AA6A8] transition hover:text-[#5ec2c4] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy === 'resend' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── FORGOT PASSWORD: STEP 3 (SUCCESS) ────────────────────────── */}
+          {mode === 'forgot-success' && (
+            <motion.div
+              key="forgot-success"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="py-4 text-center"
+              className="py-6 text-center"
             >
-              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#6D9B82]/25 bg-[#6D9B82]/10">
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#6D9B82]/25 bg-[#6D9B82]/10 shadow-[0_0_20px_rgba(109,155,130,0.2)]">
                 <CheckCircle2 className="h-7 w-7 text-[#6D9B82]" />
               </div>
               <h2 className="mb-2 text-xl font-semibold tracking-tight text-[#E8E8E5]">
-                Reset link sent!
+                Password Reset Successfully!
               </h2>
-              <p className="text-sm text-[#929694] mb-1">
-                We sent a password reset link to
+              <p className="text-sm text-[#929694] mb-5">
+                Your password has been updated and your account is now logged in.
               </p>
-              <p className="text-sm font-medium text-[#E8E8E5] mb-5">{email}</p>
-              <p className="text-xs text-[#626766] mb-6">
-                Click the link in the email to set a new password. The link expires in 1 hour. Check your spam folder if you don&apos;t see it.
-              </p>
-              <button
-                onClick={() => switchMode('signin')}
-                className="flex items-center gap-1.5 text-sm text-[#929694] transition hover:text-[#E8E8E5] mx-auto"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back to sign in
-              </button>
+              <div className="flex justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-[#4AA6A8]" />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -859,11 +1191,6 @@ function AuthPanel({ onClose, supabase, reason }: Omit<Props, 'open'>) {
 /*  Error message sanitizer                                                    */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-/**
- * Supabase sometimes surfaces raw HTTP status codes (e.g. "0", "422") as the
- * error message. This helper converts those meaningless strings into the
- * provided human-readable fallback.
- */
 function sanitizeError(err: unknown, fallback: string): string {
   const raw =
     err instanceof Error
@@ -872,7 +1199,6 @@ function sanitizeError(err: unknown, fallback: string): string {
         ? String((err as { message: string }).message)
         : '';
 
-  // Treat empty strings or pure-numeric strings as meaningless
   if (!raw || /^\d+$/.test(raw.trim())) return fallback;
   return raw;
 }

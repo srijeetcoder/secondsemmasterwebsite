@@ -230,3 +230,19 @@ ALTER TABLE public.makaut_notices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow read access to anyone"
   ON public.makaut_notices FOR SELECT TO anon, authenticated USING (true);
 
+-- 4. Auth Security & Rate Limiting Logs
+CREATE TABLE IF NOT EXISTS public.auth_rate_limits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_type TEXT NOT NULL CHECK (action_type IN ('account_creation', 'password_reset', 'login_attempt')),
+  identifier TEXT NOT NULL,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.auth_rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- Allow anon and authenticated to log action events securely
+CREATE POLICY "Allow system insert for rate limits"
+  ON public.auth_rate_limits FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+
